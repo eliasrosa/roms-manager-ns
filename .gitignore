@@ -1,0 +1,53 @@
+# Build Switch
+build.nx/
+*.nro
+*.nacp
+*.elf
+*.map
+
+# Build PC
+build-pc/
+
+# Shaders compilados
+resources/shaders/
+
+# Resources symlinks (gerados por setup-resources.sh)
+resources/font
+resources/i18n
+resources/img
+resources/inter
+resources/material
+resources/xml/tabs
+resources/xml/views/captioned_image.xml
+
+# Test data
+test_sd/
+server/data/
+
+# Config local (pode conter IP da rede)
+config.local.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Dados baixados pelo sync (teste)
+sdmc:/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Core dumps
+core
+*.core

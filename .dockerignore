@@ -1,0 +1,29 @@
+# Build artifacts
+build.nx/
+build-pc/
+*.nro
+*.nacp
+*.elf
+*.map
+
+# Git
+.git/
+.gitmodules
+
+# Dev tools
+.kiro/
+.editorconfig
+.vscode/
+.idea/
+
+# Test data
+test_sd/
+server/data/
+
+# Docs
+*.md
+LICENSE
+
+# OS
+.DS_Store
+Thumbs.db

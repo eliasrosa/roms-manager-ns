@@ -1,0 +1,33 @@
+{
+  "server": {
+    "host": "192.168.1.100",
+    "port": 8080,
+    "protocol": "http"
+  },
+  "sync": {
+    "auto_sync": false,
+    "check_interval_minutes": 30,
+    "verify_hash": true,
+    "delete_removed": false,
+    "max_concurrent_downloads": 2
+  },
+  "paths": {
+    "roms": {
+      "remote": "/roms",
+      "local": "sdmc:/roms/"
+    },
+    "covers": {
+      "remote": "/covers",
+      "local": "sdmc:/roms/covers/"
+    },
+    "saves": {
+      "remote": "/saves",
+      "local": "sdmc:/roms/saves/"
+    }
+  },
+  "filters": {
+    "extensions": [".nsp", ".xci", ".nro"],
+    "max_file_size_mb": 0,
+    "exclude_patterns": ["._*", ".DS_Store", "Thumbs.db"]
+  }
+}
