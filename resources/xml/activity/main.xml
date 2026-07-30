@@ -1,0 +1,52 @@
+<brls:TabFrame
+    title="ROMs Manager NS">
+
+    <!-- Tab: Sync -->
+    <brls:Tab label="Sync">
+        <SyncTab />
+    </brls:Tab>
+
+    <brls:Separator />
+
+    <!-- Tab: Sobre -->
+    <brls:Tab label="Sobre">
+        <brls:Box
+            width="auto"
+            height="auto"
+            axis="column"
+            paddingTop="50"
+            paddingBottom="50"
+            paddingLeft="75"
+            paddingRight="75">
+
+            <brls:Label
+                width="auto"
+                height="auto"
+                text="ROMs Manager NS v0.2.0"
+                fontSize="36" />
+
+            <brls:Label
+                width="auto"
+                height="auto"
+                text="Gerenciador de ROMs para Nintendo Switch"
+                fontSize="22"
+                marginTop="16" />
+
+            <brls:Label
+                width="auto"
+                height="auto"
+                text="Autor: farelo"
+                fontSize="18"
+                marginTop="32" />
+
+            <brls:Label
+                width="auto"
+                height="auto"
+                text="UI: Borealis (natinusala)"
+                fontSize="18"
+                marginTop="8" />
+
+        </brls:Box>
+    </brls:Tab>
+
+</brls:TabFrame>

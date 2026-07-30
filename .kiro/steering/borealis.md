@@ -68,6 +68,7 @@ view->getChildren()                      // vector<View*>&
 - Header() construtor sem args — usar setTitle() depois
 - Label não é focável — não dar giveFocus em Label
 - `createFromXMLResource("file.xml")` → busca em `BRLS_RESOURCES/xml/file.xml`
+- **Button actions disparam em repeat** se o botão for segurado. Usar flag `isBusy` para impedir re-entrada em operações demoradas (rede, I/O).
 
 ### XML
 ```xml

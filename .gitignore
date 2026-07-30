@@ -48,6 +48,9 @@ Thumbs.db
 # Docker
 .docker/
 
+# xmake
+.xmake/
+
 # Core dumps
 core
 *.core

@@ -102,6 +102,9 @@ void SyncTab::buildUI()
 
 void SyncTab::onTestConnection()
 {
+    if (isSyncing) return;
+    isSyncing = true;
+
     statusLabel->setText("Status: Testando...");
     appendLog("$ test connection " + syncManager.getConfig().server.baseUrl());
 
@@ -118,10 +121,15 @@ void SyncTab::onTestConnection()
         statusLabel->setText("Status: FALHA");
         appendLog("  -> ERRO: " + error);
     }
+
+    isSyncing = false;
 }
 
 void SyncTab::onStartSync()
 {
+    if (isSyncing) return;
+    isSyncing = true;
+
     statusLabel->setText("Status: Sincronizando...");
     progressLabel->setText("Iniciando...");
     appendLog("$ sync start");
@@ -164,6 +172,7 @@ void SyncTab::onStartSync()
         appendLog("$ sync complete");
         progressLabel->setText(summary);
         statusLabel->setText("Status: Concluido");
+        isSyncing = false;
     };
 
     syncManager.runSync(callbacks);

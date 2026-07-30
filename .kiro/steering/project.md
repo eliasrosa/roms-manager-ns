@@ -34,19 +34,39 @@ App homebrew para Nintendo Switch (Atmosphère) que gerencia ROMs no SD card e s
 - Plataforma: usar `platform::sdRoot()` em vez de hardcoded `sdmc:/`
 - Views customizadas: herdar de `brls::Box`, implementar `static View* create()`
 
-## Build
+## Build Switch (CMake cross-compile via Docker)
 
-```bash
-make pc          # testa no PC
-make watch       # hot reload
-make serve       # servidor sync
-make build       # gera .nro (Docker)
-make deploy      # envia via nxlink
-make install     # copia via FTP
-```
+Cadeia de build completa para gerar .nro:
+
+1. **Dockerfile**: imagem `devkitpro/devkita64:latest` + cmake
+2. **Toolchain**: `cmake/SwitchToolchain.cmake` (aarch64-none-elf-gcc, flags -D__SWITCH__, specs libnx)
+3. **CMake flags obrigatórias**: `-DPLATFORM_SWITCH=ON -DPLATFORM_DESKTOP=OFF -DBOREALIS_USE_DEKO3D=ON -DBRLS_UNITY_BUILD=OFF`
+4. **switch_wrapper.c**: DEVE ser incluído manualmente no target (CMakeLists do borealis só faz GLOB de *.cpp, ignora *.c). Contém `userAppInit()` que faz `romfsInit()`, `socketInitialize()`, `plInitialize()`, etc.
+5. **Shaders**: compilar GLSL → DKSH com `uam` antes do build CMake. Output em `resources/shaders/`. O nanovg/deko3d busca em `romfs:/shaders/`.
+6. **elf2nro**: após compilar, gerar .nro com `--romfsdir=resources` para empacotar shaders + i18n + material fonts.
+7. **ENV PATH**: `/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin` deve estar no PATH do Docker.
+8. **nxlink logs**: definir `-DDEBUG` para `switch_wrapper.c` habilitar `nxlinkStdio()`.
+
+### Problemas conhecidos
+- `BRLS_UNITY_BUILD` deve ser OFF (variável não definida causa erro no CMake)
+- Porta 28771 do nxlink pode ficar presa após timeout — matar processo antes de re-deploy
+- resources/xml NÃO pode ser symlink — deve ser diretório real com nosso main.xml
 
 ## Variáveis de ambiente
 
 - `SWITCH_IP` — IP do Switch na rede (default: 192.168.0.2)
 - `SWITCH_FTP_PORT` — porta do ftpd (default: 5000)
 - `DEVKITPRO` — path do devkitPro (só para build local sem Docker)
+
+
+
+## Targets do Makefile
+
+```bash
+make pc          # testa no PC (cmake)
+make watch       # hot reload
+make serve       # servidor sync
+make build       # gera .nro (Docker)
+make deploy      # envia via nxlink
+make install     # copia via FTP
+```

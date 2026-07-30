@@ -24,18 +24,14 @@
 
 int main(int argc, char* argv[])
 {
-#ifdef __SWITCH__
-    // Inicializar sockets para rede (necessário para HTTP e nxlink logs)
-    socketInitializeDefault();
-
-    // Redirecionar stdout/stderr para nxlink (permite ver logs no PC)
-    nxlinkStdio();
-#endif
+    // NOTA: No Switch, borealis já faz romfsInit(), socketInitializeDefault()
+    // e nxlinkStdio() via userAppInit() em switch_wrapper.c
+    // Não duplicar aqui!
 
     printf("[main] ROMs Manager NS iniciando...\n");
 
     // Log level
-    brls::Logger::setLogLevel(brls::LogLevel::DEBUG);
+    brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
 
     printf("[main] Inicializando Borealis...\n");
 
@@ -75,11 +71,9 @@ int main(int argc, char* argv[])
     while (brls::Application::mainLoop())
         ;
 
-    printf("[main] Loop encerrado, saindo...\n");
+    printf("[main] App encerrado\n");
 
-#ifdef __SWITCH__
-    socketExit();
-#endif
+    printf("[main] Loop encerrado, saindo...\n");
 
     return EXIT_SUCCESS;
 }

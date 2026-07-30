@@ -26,7 +26,7 @@ docker build -t "$IMAGE_NAME" .
 # Rodar container e copiar output
 echo "[2/3] Extraindo .nro..."
 docker create --name "$CONTAINER_NAME" "$IMAGE_NAME" > /dev/null 2>&1
-docker cp "$CONTAINER_NAME:/app/roms-manager-ns.nro" ./roms-manager-ns.nro
+docker cp "$CONTAINER_NAME:/app/build.nx/roms-manager-ns.nro" ./roms-manager-ns.nro
 docker rm "$CONTAINER_NAME" > /dev/null 2>&1
 
 echo "[3/3] Pronto!"

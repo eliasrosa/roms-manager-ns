@@ -15,17 +15,17 @@ SWITCH_FTP_PORT ?= 5000
 
 pc-setup:
 	@if [ ! -d "build-pc" ]; then \
-		meson setup build-pc; \
+		cmake -B build-pc -DCMAKE_BUILD_TYPE=Release -DGLFW_BUILD_WAYLAND=OFF; \
 	fi
 
 pc: pc-setup
-	@ninja -C build-pc
+	@cmake --build build-pc -j$$(nproc)
 	@echo ""
 	@echo "Executavel: ./build-pc/roms-manager-ns"
 	@./build-pc/roms-manager-ns
 
 pc-build: pc-setup
-	@ninja -C build-pc
+	@cmake --build build-pc -j$$(nproc)
 	@echo "Build PC concluido: ./build-pc/roms-manager-ns"
 
 clean-pc:
@@ -42,6 +42,7 @@ deploy:
 	@echo "=== Deploy via nxlink ==="
 	@echo "Certifique-se que o Switch esta com hbmenu em modo nxlink (pressione Y)"
 	@echo ""
+	@pkill -f nxlink 2>/dev/null || true
 	@if [ ! -f "roms-manager-ns.nro" ]; then \
 		echo "[1/2] Gerando .nro..."; \
 		./build.sh; \
@@ -175,6 +176,22 @@ export OFILES_SRC	:=	$(CPPFILES:.cpp=.o) $(CFILES:.c=.o) $(SFILES:.s=.o)
 export OFILES 	:=	$(OFILES_BIN) $(OFILES_SRC)
 export HFILES_BIN	:=	$(addsuffix .h,$(subst .,_,$(BINFILES)))
 
+#---------------------------------------------------------------------------------
+# Shader compilation (GLSL -> DKSH para deko3d/nanovg)
+#---------------------------------------------------------------------------------
+GLSLFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.glsl)))
+
+ifneq ($(strip $(ROMFS)),)
+	ROMFS_TARGETS :=
+	ROMFS_FOLDERS :=
+	ifneq ($(strip $(OUT_SHADERS)),)
+		ROMFS_SHADERS := $(ROMFS)/$(OUT_SHADERS)
+		ROMFS_TARGETS += $(patsubst %.glsl, $(ROMFS_SHADERS)/%.dksh, $(GLSLFILES))
+		ROMFS_FOLDERS += $(ROMFS_SHADERS)
+	endif
+	export ROMFS_DEPS := $(foreach file,$(ROMFS_TARGETS),$(CURDIR)/$(file))
+endif
+
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
 			-I$(CURDIR)/$(BUILD)
@@ -215,9 +232,45 @@ endif
 switch: $(BUILD)
 all: $(BUILD)
 
-$(BUILD):
+$(BUILD): $(ROMFS_TARGETS)
 	@[ -d $@ ] || mkdir -p $@
 	@MSYS2_ARG_CONV_EXCL="-D;$(MSYS2_ARG_CONV_EXCL)" $(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+
+#---------------------------------------------------------------------------------
+# Regras de compilação de shaders
+#---------------------------------------------------------------------------------
+ifneq ($(strip $(ROMFS_TARGETS)),)
+
+$(ROMFS_TARGETS): | $(ROMFS_FOLDERS)
+
+$(ROMFS_FOLDERS):
+	@mkdir -p $@
+
+$(ROMFS_SHADERS)/%_vsh.dksh: %_vsh.glsl
+	@echo {vert} $(notdir $<)
+	@uam -s vert -o $@ $<
+
+$(ROMFS_SHADERS)/%_tcsh.dksh: %_tcsh.glsl
+	@echo {tess_ctrl} $(notdir $<)
+	@uam -s tess_ctrl -o $@ $<
+
+$(ROMFS_SHADERS)/%_tesh.dksh: %_tesh.glsl
+	@echo {tess_eval} $(notdir $<)
+	@uam -s tess_eval -o $@ $<
+
+$(ROMFS_SHADERS)/%_gsh.dksh: %_gsh.glsl
+	@echo {geom} $(notdir $<)
+	@uam -s geom -o $@ $<
+
+$(ROMFS_SHADERS)/%_fsh.dksh: %_fsh.glsl
+	@echo {frag} $(notdir $<)
+	@uam -s frag -o $@ $<
+
+$(ROMFS_SHADERS)/%.dksh: %.glsl
+	@echo {comp} $(notdir $<)
+	@uam -s comp -o $@ $<
+
+endif
 
 clean:
 	@echo Limpando...

@@ -13,6 +13,7 @@
 #include <fstream>
 #include <sstream>
 #include <cstring>
+#include <sys/stat.h>
 
 // Parser JSON mínimo (sem dependência externa)
 // Suporta apenas o subset necessário para config.json
@@ -141,9 +142,24 @@ AppConfig loadConfig(const std::string& path)
 {
     AppConfig config;
 
+    // Garantir que o diretório do config existe
+    size_t lastSlash = path.find_last_of('/');
+    if (lastSlash != std::string::npos)
+    {
+        std::string dir = path.substr(0, lastSlash);
+        mkdir(dir.c_str(), 0755);
+    }
+
     std::ifstream file(path);
     if (!file.is_open())
-        return config; // retorna defaults
+    {
+        // Se não existe, criar com defaults
+        config.paths.push_back({"roms", "/roms", platform::sdRoot() + "roms/"});
+        config.paths.push_back({"covers", "/covers", platform::sdRoot() + "roms/covers/"});
+        config.paths.push_back({"saves", "/saves", platform::sdRoot() + "roms/saves/"});
+        saveConfig(config, path);
+        return config;
+    }
 
     std::stringstream ss;
     ss << file.rdbuf();

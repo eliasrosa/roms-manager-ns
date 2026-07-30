@@ -27,6 +27,8 @@ class SyncTab : public brls::Box
     brls::Button* syncButton = nullptr;
     brls::Button* testButton = nullptr;
 
+    bool isSyncing = false; // impede re-entrada durante sync
+
     std::vector<std::string> logLines;
     static const int MAX_LOG_LINES = 15;
 

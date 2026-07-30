@@ -18,17 +18,10 @@ class FileBrowserActivity : public brls::Activity
 
     brls::View* createContentView() override
     {
-        brls::AppletFrame* frame = new brls::AppletFrame();
-        frame->setTitle("ROMs Manager NS");
-
         FileBrowserTab* tab = new FileBrowserTab();
         tab->setPath(path);
-        frame->setContentView(tab);
-
-        return frame;
+        return tab;
     }
-
-    void setPath(const std::string& p) { this->path = p; }
 
   private:
     std::string path;

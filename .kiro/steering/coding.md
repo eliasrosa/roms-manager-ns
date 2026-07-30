@@ -38,9 +38,17 @@
 - Nunca usar `sdmc:/` direto no código
 - Sempre usar `platform::sdRoot()` ou `platform::romsPath()`
 - Usar `#ifdef __SWITCH__` apenas em main.cpp e platform.hpp
+- **Configs editáveis pelo usuário NUNCA no romfs**. Ler do SD card (`sdmc:/switch/<app>/config.json`) com fallback para defaults hardcoded no código. Romfs é read-only e exige rebuild para alterar.
 
 ## Git
 
 - Mensagens de commit em pt-BR com prefixo convencional
 - Branch de dev separada, nunca push direto na main
 - Não commitar: build/, build-pc/, build.nx/, *.nro, test_sd/, server/data/
+
+## Migrações de Dependência
+
+- Antes de trocar submodule de lib, verificar build system da nova versão (Makefile? CMake? xmake?)
+- Testar build PC localmente primeiro — só depois tentar Docker/Switch
+- Verificar se a API mudou (classes renomeadas, métodos removed/protected)
+- Manter branch/tag estável da versão anterior até confirmar que a nova funciona

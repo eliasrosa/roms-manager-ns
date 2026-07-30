@@ -15,16 +15,16 @@ echo "=== ROMs Manager NS - Build PC ==="
 echo ""
 
 # Verificar dependências
-for cmd in meson ninja pkg-config; do
+for cmd in cmake; do
     if ! command -v "$cmd" &> /dev/null; then
         echo "ERRO: '$cmd' não encontrado. Instale as dependências:"
-        echo "  sudo apt install build-essential meson ninja-build pkg-config libglfw3-dev libglm-dev"
+        echo "  sudo apt install cmake build-essential libglfw3-dev libglm-dev libdbus-1-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev"
         exit 1
     fi
 done
 
 # Verificar se submodule está presente
-if [ ! -f "library/meson.build" ]; then
+if [ ! -f "library/library/CMakeLists.txt" ]; then
     echo "[!] Submodule borealis não encontrado. Inicializando..."
     git submodule update --init --recursive
 fi
@@ -39,15 +39,15 @@ fi
 
 # Configurar meson (só na primeira vez ou se não existir)
 if [ ! -d "$BUILD_DIR" ]; then
-    echo "[2/4] Configurando meson..."
-    meson setup "$BUILD_DIR"
+    echo "[2/4] Configurando cmake..."
+    cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DGLFW_BUILD_WAYLAND=OFF
 else
     echo "[2/4] Build dir já existe ✓"
 fi
 
 # Compilar
 echo "[3/4] Compilando..."
-ninja -C "$BUILD_DIR"
+cmake --build "$BUILD_DIR" -j$(nproc)
 
 echo "[4/4] Build concluído!"
 echo ""

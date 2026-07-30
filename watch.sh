@@ -30,8 +30,8 @@ trap cleanup EXIT INT TERM
 
 # Garantir que build-pc existe
 if [ ! -d "$BUILD_DIR" ]; then
-    echo -e "${YELLOW}[watch] Configurando meson...${NC}"
-    meson setup "$BUILD_DIR"
+    echo -e "${YELLOW}[watch] Configurando cmake...${NC}"
+    cmake -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DGLFW_BUILD_WAYLAND=OFF
 fi
 
 build_and_run() {
@@ -43,7 +43,7 @@ build_and_run() {
 
     echo -e "${YELLOW}[watch] Compilando...${NC}"
 
-    if ninja -C "$BUILD_DIR" 2>&1 | tail -5; then
+    if cmake --build "$BUILD_DIR" -j$(nproc) 2>&1 | tail -5; then
         echo -e "${GREEN}[watch] Build OK — iniciando app...${NC}"
         $BIN &
         PID=$!
