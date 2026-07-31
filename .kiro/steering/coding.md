@@ -24,6 +24,8 @@
 - Para navegação: usar `Application::pushActivity()` (stack-based)
 - XML de activities em `resources/xml/activity/`
 - Referenciar resources com path relativo ao BRLS_RESOURCES (sem prefixo `xml/` no código)
+- **Fontes obrigatórias** para renderizar texto no PC: `resources/font/switch_font.ttf` e `switch_icons.ttf` (copiar de `library/resources/font/`). Sem elas nenhum texto aparece no desktop.
+- `AppletFrame` com `TabFrame` interno: não usar `iconInterpolation` no AppletFrame — causa textos invisíveis
 
 ## Rede
 
@@ -45,6 +47,21 @@
 - Mensagens de commit em pt-BR com prefixo convencional
 - Branch de dev separada, nunca push direto na main
 - Não commitar: build/, build-pc/, build.nx/, *.nro, test_sd/, server/data/
+
+## Debugging e Reprodução
+
+- Para reproduzir bugs reportados pelo usuário, executar **exatamente o mesmo comando** que ele usou (ex: `make deploy`, não o comando Docker interno)
+- Pode quebrar em partes para diagnosticar, mas o teste final deve ser pelo target do Make
+- Nunca considerar o bug resolvido sem rodar o comando original e confirmar exit code 0
+
+## nxlink (deploy para Switch)
+
+- `nxlink` envia o `.nro` para o Switch e executa imediatamente (modo dev)
+- **Comportamento padrão**: copia o .nro para `sdmc:/switch/<nome>.nro` (raiz de /switch/) — isso polui o hbmenu com entrada duplicada
+- **Flag `-p`**: define o path de destino no SD card (ex: `-p /switch/roms-manager-ns/roms-manager-ns.nro`)
+- **`deploy`** = execução temporária via nxlink (dev/debug)
+- **`install`** = instalação permanente via FTP no path correto
+- Porta 28771 pode ficar presa após timeout — matar processo antes de re-deploy
 
 ## Migrações de Dependência
 

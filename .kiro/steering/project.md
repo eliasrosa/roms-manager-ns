@@ -4,6 +4,10 @@
 
 App homebrew para Nintendo Switch (Atmosphère) que gerencia ROMs no SD card e sincroniza via WiFi com um servidor local.
 
+- **Repositório**: github.com/eliasrosa/roms-manager-ns
+- **Autor**: elfarelo (eliasrosa)
+- **Licença**: MIT
+
 ## Stack
 
 - **Linguagem**: C++17
@@ -70,3 +74,29 @@ make build       # gera .nro (Docker)
 make deploy      # envia via nxlink
 make install     # copia via FTP
 ```
+
+## Troubleshooting — Ordem de Investigação
+
+- **Problemas com deploy/install/build**: investigar `Makefile` + `build.sh` PRIMEIRO, não o código C++ do app. O app não controla como é copiado/instalado — isso é responsabilidade dos scripts de build.
+- **Problemas de runtime** (crash, UI, lógica): aí sim investigar `src/`
+
+
+## APIs libnx — Notas Importantes
+
+### Espaço de armazenamento (SD / NAND)
+
+- **`statvfs()` NÃO funciona** com paths scheme do Switch (`sdmc:/`, `save:/`, etc.)
+- Usar `nsGetTotalSpaceSize()` / `nsGetFreeSpaceSize()` com `NcmStorageId`:
+  - `NcmStorageId_SdCard` — microSD
+  - `NcmStorageId_BuiltInUser` — NAND (system)
+- **Requer `nsInitialize()` antes e `nsExit()` depois** — o `switch_wrapper.c` do Borealis NÃO faz esse init
+- No PC, usar `statvfs` normalmente (paths reais funcionam)
+
+### Material Icons (Borealis)
+
+- Fonte carregada como fallback: `library/resources/material/MaterialIcons-Regular.ttf`
+- Usar codepoints UTF-8 diretamente no texto do Label (ex: `"\xEE\x98\xA3"` para U+E623)
+- Nem todos os codepoints do range renderizam — testar com `fc-query --format='%{charset}\n'`
+- Codepoints confirmados funcionais:
+  - `U+E623` (`\xEE\x98\xA3`) — sd_card
+  - `U+E322` (`\xEE\x8C\xA2`) — memory (chip)
