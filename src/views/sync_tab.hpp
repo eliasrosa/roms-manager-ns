@@ -20,6 +20,7 @@ class SyncTab : public brls::Box
     netsync::SyncManager syncManager;
 
     brls::Label* statusLabel = nullptr;
+    brls::Label* connectionIcon = nullptr;
     brls::Label* serverLabel = nullptr;
     brls::Label* progressLabel = nullptr;
     brls::Box* logContainer = nullptr;

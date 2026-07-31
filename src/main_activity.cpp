@@ -1,9 +1,12 @@
 #include "main_activity.hpp"
 
 #include <borealis.hpp>
+#include <borealis/core/thread.hpp>
 #include <cstdio>
 
 #include "platform.hpp"
+#include "sync/config.hpp"
+#include "sync/http_client.hpp"
 
 namespace {
 
@@ -73,6 +76,26 @@ void MainActivity::onContentAvailable()
     container->setAlignItems(brls::AlignItems::CENTER);
     container->setJustifyContent(brls::JustifyContent::FLEX_END);
 
+    // WiFi status (ícone signal_wifi_4_bar U+E63E)
+    auto* wifiRow = new brls::Box();
+    wifiRow->setAxis(brls::Axis::ROW);
+    wifiRow->setAlignItems(brls::AlignItems::CENTER);
+    wifiRow->setMarginRight(20);
+
+    wifiIcon = new brls::Label();
+    wifiIcon->setText("\xEE\x98\xBE");
+    wifiIcon->setFontSize(18);
+    wifiIcon->setTextColor(nvgRGBA(150, 150, 150, 255));
+    wifiRow->addView(wifiIcon);
+
+    wifiStatus = new brls::Label();
+    wifiStatus->setText(" ...");
+    wifiStatus->setFontSize(14);
+    wifiStatus->setTextColor(nvgRGBA(150, 150, 150, 255));
+    wifiRow->addView(wifiStatus);
+
+    container->addView(wifiRow);
+
     // microSD (ícone sd_card U+E623)
     auto* sdRow = createStorageRow("\xEE\x98\xA3", sdInfo);
     container->addView(sdRow);
@@ -82,7 +105,7 @@ void MainActivity::onContentAvailable()
     sysRow->setMargins(0, 0, 0, 16);
     container->addView(sysRow);
 
-    // Seta como hintView do TabFrame → aparece no header direito
+    // Setar como hintView do TabFrame → aparece no header direito
     auto* contentView = this->getView("applet");
     if (contentView)
     {
@@ -92,5 +115,31 @@ void MainActivity::onContentAvailable()
             applet->getContentView()->getAppletFrameItem()->setHintView(container);
             applet->updateAppletFrameItem();
         }
+    }
+
+    // Testar conexão após a UI estar pronta
+    brls::delay(500, [this]() {
+        this->checkConnection();
+    });
+}
+
+void MainActivity::checkConnection()
+{
+    auto config = netsync::loadConfig(netsync::getConfigPath());
+    std::string url = config.server.baseUrl() + "/health";
+
+    netsync::HttpResponse resp = netsync::httpGet(url);
+
+    if (resp.ok())
+    {
+        wifiIcon->setTextColor(nvgRGBA(76, 175, 80, 255));
+        wifiStatus->setText(" ON");
+        wifiStatus->setTextColor(nvgRGBA(76, 175, 80, 255));
+    }
+    else
+    {
+        wifiIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
+        wifiStatus->setText(" OFF");
+        wifiStatus->setTextColor(nvgRGBA(244, 67, 54, 255));
     }
 }

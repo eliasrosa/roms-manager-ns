@@ -28,6 +28,7 @@ set(APP_SOURCES
     src/main_activity.cpp
     src/views/file_browser_tab.cpp
     src/views/sync_tab.cpp
+    src/views/settings_tab.cpp
     src/sync/config.cpp
     src/sync/http_client.cpp
     src/sync/sync_manager.cpp

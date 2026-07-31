@@ -20,6 +20,7 @@
 #include "main_activity.hpp"
 #include "views/file_browser_tab.hpp"
 #include "views/sync_tab.hpp"
+#include "views/settings_tab.hpp"
 #include "platform.hpp"
 
 int main(int argc, char* argv[])
@@ -60,6 +61,7 @@ int main(int argc, char* argv[])
     printf("[main] Registrando views...\n");
     brls::Application::registerXMLView("FileBrowserTab", FileBrowserTab::create);
     brls::Application::registerXMLView("SyncTab", SyncTab::create);
+    brls::Application::registerXMLView("SettingsTab", SettingsTab::create);
 
     // Push da activity principal
     printf("[main] Criando MainActivity...\n");

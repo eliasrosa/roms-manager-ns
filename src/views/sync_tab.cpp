@@ -4,6 +4,7 @@
  */
 
 #include "sync_tab.hpp"
+#include <borealis/core/thread.hpp>
 #include <ctime>
 
 namespace {
@@ -29,27 +30,48 @@ SyncTab::SyncTab()
     this->buildUI();
     this->appendLog("ROMs Manager NS v0.2.0 - Sync");
     this->appendLog("Servidor: " + syncManager.getConfig().server.baseUrl());
-    this->appendLog("Aguardando comando...");
+
+    // Testar conexão automaticamente após a UI estar pronta
+    brls::delay(500, [this]() {
+        this->onTestConnection();
+    });
 }
 
 void SyncTab::buildUI()
 {
     // === Seção superior: info + botões ===
 
+    // Status de conexão (ícone wifi + texto)
+    auto* connectionRow = new brls::Box();
+    connectionRow->setAxis(brls::Axis::ROW);
+    connectionRow->setAlignItems(brls::AlignItems::CENTER);
+    connectionRow->setMargins(12, 24, 4, 24);
+
+    // Ícone WiFi (U+E63E = signal_wifi_4_bar)
+    connectionIcon = new brls::Label();
+    connectionIcon->setText("\xEE\x98\xBE");
+    connectionIcon->setFontSize(24);
+    connectionIcon->setTextColor(nvgRGBA(150, 150, 150, 255));
+    connectionIcon->setMarginRight(8);
+    connectionRow->addView(connectionIcon);
+
+    // Status da conexão
+    statusLabel = new brls::Label();
+    statusLabel->setText("Verificando...");
+    statusLabel->setFontSize(18);
+    statusLabel->setTextColor(nvgRGBA(150, 150, 150, 255));
+    connectionRow->addView(statusLabel);
+
+    this->addView(connectionRow);
+
     // Info do servidor
     auto& cfg = syncManager.getConfig();
     serverLabel = new brls::Label();
     serverLabel->setText("Servidor: " + cfg.server.baseUrl());
-    serverLabel->setFontSize(18);
-    serverLabel->setMargins(12, 24, 4, 24);
+    serverLabel->setFontSize(16);
+    serverLabel->setMargins(4, 24, 8, 24);
+    serverLabel->setTextColor(nvgRGBA(140, 140, 140, 255));
     this->addView(serverLabel);
-
-    // Status
-    statusLabel = new brls::Label();
-    statusLabel->setText("Status: Aguardando...");
-    statusLabel->setFontSize(18);
-    statusLabel->setMargins(4, 24, 8, 24);
-    this->addView(statusLabel);
 
     // Progresso
     progressLabel = new brls::Label();
@@ -105,7 +127,9 @@ void SyncTab::onTestConnection()
     if (isSyncing) return;
     isSyncing = true;
 
-    statusLabel->setText("Status: Testando...");
+    statusLabel->setText("Testando...");
+    statusLabel->setTextColor(nvgRGBA(200, 200, 100, 255));
+    connectionIcon->setTextColor(nvgRGBA(200, 200, 100, 255));
     appendLog("$ test connection " + syncManager.getConfig().server.baseUrl());
 
     std::string error;
@@ -113,12 +137,16 @@ void SyncTab::onTestConnection()
 
     if (ok)
     {
-        statusLabel->setText("Status: Conectado!");
+        statusLabel->setText("Conectado");
+        statusLabel->setTextColor(nvgRGBA(76, 175, 80, 255));
+        connectionIcon->setTextColor(nvgRGBA(76, 175, 80, 255));
         appendLog("  -> OK (servidor acessivel)");
     }
     else
     {
-        statusLabel->setText("Status: FALHA");
+        statusLabel->setText("Sem conexao");
+        statusLabel->setTextColor(nvgRGBA(244, 67, 54, 255));
+        connectionIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
         appendLog("  -> ERRO: " + error);
     }
 

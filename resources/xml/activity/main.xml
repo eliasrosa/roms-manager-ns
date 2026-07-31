@@ -10,49 +10,191 @@
             <SyncTab />
         </brls:Tab>
 
+        <!-- Tab: Configurações -->
+        <brls:Tab label="Configurações">
+            <SettingsTab />
+        </brls:Tab>
+
         <brls:Separator />
 
         <!-- Tab: Sobre -->
         <brls:Tab label="Sobre">
-            <brls:Box
+            <brls:ScrollingFrame
                 width="auto"
                 height="auto"
-                axis="column"
-                paddingTop="50"
-                paddingBottom="50"
-                paddingLeft="75"
-                paddingRight="75">
+                grow="1.0">
 
-                <brls:Label
+                <brls:Box
                     width="auto"
                     height="auto"
-                    text="ROMs Manager NS v0.2.0"
-                    fontSize="36"
-                    horizontalAlign="center" />
+                    axis="column"
+                    paddingTop="40"
+                    paddingBottom="60"
+                    paddingLeft="75"
+                    paddingRight="75">
 
-                <brls:Label
-                    width="auto"
-                    height="auto"
-                    text="Gerenciador de ROMs para Nintendo Switch"
-                    fontSize="22"
-                    marginTop="16"
-                    horizontalAlign="center" />
+                    <!-- Título principal -->
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="ROMs Manager NS"
+                        fontSize="36"
+                        horizontalAlign="center" />
 
-                <brls:Label
-                    width="auto"
-                    height="auto"
-                    text="Autor: farelo"
-                    fontSize="18"
-                    marginTop="32" />
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="v0.2.0"
+                        fontSize="20"
+                        marginTop="8"
+                        horizontalAlign="center" />
 
-                <brls:Label
-                    width="auto"
-                    height="auto"
-                    text="UI: Borealis (natinusala)"
-                    fontSize="18"
-                    marginTop="8" />
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="Gerenciador de ROMs para Nintendo Switch"
+                        fontSize="18"
+                        marginTop="12"
+                        horizontalAlign="center" />
 
-            </brls:Box>
+                    <!-- Informações -->
+                    <brls:Header
+                        title="Informações"
+                        marginTop="40" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Autor: elfarelo"
+                        fontSize="18"
+                        marginTop="8" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Licença: MIT"
+                        fontSize="18"
+                        marginTop="6" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Firmware: Atmosphère 1.5.0+"
+                        fontSize="18"
+                        marginTop="6" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Repositório: github.com/eliasrosa/roms-manager-ns"
+                        fontSize="18"
+                        marginTop="6" />
+
+                    <!-- Funcionalidades -->
+                    <brls:Header
+                        title="Funcionalidades"
+                        marginTop="32" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Navegação de ROMs no SD card"
+                        fontSize="17"
+                        marginTop="8" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Sincronização WiFi com servidor local"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Filtro por extensão e diretório"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Configuração via config.json no SD"
+                        fontSize="17"
+                        marginTop="4" />
+
+
+                    <!-- Créditos -->
+                    <brls:Header
+                        title="Créditos e Bibliotecas"
+                        marginTop="32" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• Borealis — natinusala / xfangfang (UI framework)"
+                        fontSize="17"
+                        marginTop="8" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• libnx — switchbrew (homebrew SDK)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• devkitPro — devkitA64 toolchain"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• deko3d — fincs (GPU driver Switch)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• nanovg — Mikko Mononen (vector rendering)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• SDL2 — libsdl.org (input/audio)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• GLFW — glfw.org (desktop windowing)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• tinyxml2 — Lee Thomason (XML parsing)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                    <brls:Label
+                        width="auto"
+                        height="auto"
+                        text="• fmt — Victor Zverovich (string formatting)"
+                        fontSize="17"
+                        marginTop="4" />
+
+                </brls:Box>
+
+            </brls:ScrollingFrame>
         </brls:Tab>
 
     </brls:TabFrame>
