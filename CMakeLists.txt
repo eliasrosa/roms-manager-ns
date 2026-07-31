@@ -25,6 +25,7 @@ add_subdirectory(library/library)
 # Sources do app
 set(APP_SOURCES
     src/main.cpp
+    src/main_activity.cpp
     src/views/file_browser_tab.cpp
     src/views/sync_tab.cpp
     src/sync/config.cpp
