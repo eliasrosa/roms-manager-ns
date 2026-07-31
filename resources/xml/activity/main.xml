@@ -1,52 +1,60 @@
-<brls:TabFrame
-    title="ROMs Manager NS">
+<brls:AppletFrame
+    id="applet"
+    footerHidden="false">
 
-    <!-- Tab: Sync -->
-    <brls:Tab label="Sync">
-        <SyncTab />
-    </brls:Tab>
+    <brls:TabFrame
+        title="ROMs Manager NS">
 
-    <brls:Separator />
+        <!-- Tab: Sync -->
+        <brls:Tab label="Sync">
+            <SyncTab />
+        </brls:Tab>
 
-    <!-- Tab: Sobre -->
-    <brls:Tab label="Sobre">
-        <brls:Box
-            width="auto"
-            height="auto"
-            axis="column"
-            paddingTop="50"
-            paddingBottom="50"
-            paddingLeft="75"
-            paddingRight="75">
+        <brls:Separator />
 
-            <brls:Label
+        <!-- Tab: Sobre -->
+        <brls:Tab label="Sobre">
+            <brls:Box
                 width="auto"
                 height="auto"
-                text="ROMs Manager NS v0.2.0"
-                fontSize="36" />
+                axis="column"
+                paddingTop="50"
+                paddingBottom="50"
+                paddingLeft="75"
+                paddingRight="75">
 
-            <brls:Label
-                width="auto"
-                height="auto"
-                text="Gerenciador de ROMs para Nintendo Switch"
-                fontSize="22"
-                marginTop="16" />
+                <brls:Label
+                    width="auto"
+                    height="auto"
+                    text="ROMs Manager NS v0.2.0"
+                    fontSize="36"
+                    horizontalAlign="center" />
 
-            <brls:Label
-                width="auto"
-                height="auto"
-                text="Autor: farelo"
-                fontSize="18"
-                marginTop="32" />
+                <brls:Label
+                    width="auto"
+                    height="auto"
+                    text="Gerenciador de ROMs para Nintendo Switch"
+                    fontSize="22"
+                    marginTop="16"
+                    horizontalAlign="center" />
 
-            <brls:Label
-                width="auto"
-                height="auto"
-                text="UI: Borealis (natinusala)"
-                fontSize="18"
-                marginTop="8" />
+                <brls:Label
+                    width="auto"
+                    height="auto"
+                    text="Autor: farelo"
+                    fontSize="18"
+                    marginTop="32" />
 
-        </brls:Box>
-    </brls:Tab>
+                <brls:Label
+                    width="auto"
+                    height="auto"
+                    text="UI: Borealis (natinusala)"
+                    fontSize="18"
+                    marginTop="8" />
 
-</brls:TabFrame>
+            </brls:Box>
+        </brls:Tab>
+
+    </brls:TabFrame>
+
+</brls:AppletFrame>
