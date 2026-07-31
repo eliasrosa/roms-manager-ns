@@ -48,7 +48,8 @@ RUN cmake -B build.nx \
 
 # Gerar .nro (elf2nro)
 RUN aarch64-none-elf-strip -s build.nx/roms-manager-ns -o build.nx/roms-manager-ns.stripped && \
-    nacptool --create "ROMs Manager NS" "farelo" "0.2.0" build.nx/roms-manager-ns.nacp && \
+    nacptool --create "ROMs Manager NS" "elfarelo" "0.2.0" build.nx/roms-manager-ns.nacp && \
     elf2nro build.nx/roms-manager-ns.stripped build.nx/roms-manager-ns.nro \
+        --icon=icon.jpg \
         --nacp=build.nx/roms-manager-ns.nacp \
         --romfsdir=resources

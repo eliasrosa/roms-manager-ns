@@ -42,7 +42,7 @@ deploy:
 	@echo "=== Deploy via nxlink ==="
 	@echo "Certifique-se que o Switch esta com hbmenu em modo nxlink (pressione Y)"
 	@echo ""
-	@pkill -f nxlink 2>/dev/null || true
+	@pkill -f '[n]xlink' 2>/dev/null || true
 	@if [ ! -f "roms-manager-ns.nro" ]; then \
 		echo "[1/2] Gerando .nro..."; \
 		./build.sh; \
@@ -51,12 +51,12 @@ deploy:
 	fi
 	@echo "[2/2] Enviando para Switch..."
 	@if command -v nxlink > /dev/null 2>&1; then \
-		nxlink -s ./roms-manager-ns.nro; \
+		nxlink -p /switch/roms-manager-ns/roms-manager-ns.nro -s ./roms-manager-ns.nro; \
 	else \
 		docker run --rm --network host \
 			-v $(CURDIR)/roms-manager-ns.nro:/app/roms-manager-ns.nro \
 			devkitpro/devkita64 \
-			nxlink -a $(SWITCH_IP) -s /app/roms-manager-ns.nro; \
+			nxlink -a $(SWITCH_IP) -p /switch/roms-manager-ns/roms-manager-ns.nro -s /app/roms-manager-ns.nro; \
 	fi
 
 deploy-fresh: build deploy
@@ -97,7 +97,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 # Configuração do app
 #---------------------------------------------------------------------------------
 APP_TITLE	:=	ROMs Manager NS
-APP_AUTHOR	:=	farelo
+APP_AUTHOR	:=	elfarelo
 APP_VERSION	:=	0.2.0
 
 #---------------------------------------------------------------------------------
