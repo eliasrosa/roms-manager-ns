@@ -8,11 +8,15 @@
 
 #include <borealis.hpp>
 #include "../sync/sync_manager.hpp"
+#include <thread>
+#include <atomic>
+#include <memory>
 
 class SyncTab : public brls::Box
 {
   public:
     SyncTab();
+    ~SyncTab();
 
     static brls::View* create();
 
@@ -29,6 +33,9 @@ class SyncTab : public brls::Box
     brls::Button* testButton = nullptr;
 
     bool isSyncing = false; // impede re-entrada durante sync
+
+    // Flag compartilhada com threads/lambdas: false = view foi destruída
+    std::shared_ptr<std::atomic<bool>> alive;
 
     std::vector<std::string> logLines;
     static const int MAX_LOG_LINES = 15;

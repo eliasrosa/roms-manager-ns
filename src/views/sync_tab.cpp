@@ -21,6 +21,7 @@ std::string timestamp()
 } // namespace
 
 SyncTab::SyncTab()
+    : alive(std::make_shared<std::atomic<bool>>(true))
 {
     this->setAxis(brls::Axis::COLUMN);
 
@@ -32,9 +33,17 @@ SyncTab::SyncTab()
     this->appendLog("Servidor: " + syncManager.getConfig().server.baseUrl());
 
     // Testar conexão automaticamente após a UI estar pronta
-    brls::delay(500, [this]() {
+    auto guard = alive;
+    brls::delay(500, [this, guard]() {
+        if (!*guard) return;
         this->onTestConnection();
     });
+}
+
+SyncTab::~SyncTab()
+{
+    // Sinaliza para todas as threads/lambdas pendentes que a view foi destruída
+    *alive = false;
 }
 
 void SyncTab::buildUI()
@@ -132,25 +141,34 @@ void SyncTab::onTestConnection()
     connectionIcon->setTextColor(nvgRGBA(200, 200, 100, 255));
     appendLog("$ test connection " + syncManager.getConfig().server.baseUrl());
 
-    std::string error;
-    bool ok = syncManager.testConnection(error);
+    // Rodar em thread separada para não bloquear a UI
+    auto guard = alive;
+    std::thread([this, guard]() {
+        std::string error;
+        bool ok = syncManager.testConnection(error);
 
-    if (ok)
-    {
-        statusLabel->setText("Conectado");
-        statusLabel->setTextColor(nvgRGBA(76, 175, 80, 255));
-        connectionIcon->setTextColor(nvgRGBA(76, 175, 80, 255));
-        appendLog("  -> OK (servidor acessivel)");
-    }
-    else
-    {
-        statusLabel->setText("Sem conexao");
-        statusLabel->setTextColor(nvgRGBA(244, 67, 54, 255));
-        connectionIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
-        appendLog("  -> ERRO: " + error);
-    }
+        // Devolver resultado para a UI thread
+        brls::sync([this, guard, ok, error]() {
+            if (!*guard) return; // view já foi destruída
 
-    isSyncing = false;
+            if (ok)
+            {
+                statusLabel->setText("Conectado");
+                statusLabel->setTextColor(nvgRGBA(76, 175, 80, 255));
+                connectionIcon->setTextColor(nvgRGBA(76, 175, 80, 255));
+                appendLog("  -> OK (servidor acessivel)");
+            }
+            else
+            {
+                statusLabel->setText("Sem conexao");
+                statusLabel->setTextColor(nvgRGBA(244, 67, 54, 255));
+                connectionIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
+                appendLog("  -> ERRO: " + error);
+            }
+
+            isSyncing = false;
+        });
+    }).detach();
 }
 
 void SyncTab::onStartSync()
@@ -164,46 +182,63 @@ void SyncTab::onStartSync()
 
     netsync::SyncCallbacks callbacks;
 
-    callbacks.onStatus = [this](const std::string& status) {
-        statusLabel->setText("Status: " + status);
+    auto guard = alive;
+
+    callbacks.onStatus = [this, guard](const std::string& status) {
+        brls::sync([this, guard, status]() {
+            if (!*guard) return;
+            statusLabel->setText("Status: " + status);
+        });
     };
 
-    callbacks.onFileProgress = [this](const std::string& filename, size_t downloaded, size_t total) {
-        std::string progress;
-        if (total > 0)
-        {
-            int pct = (int)((downloaded * 100) / total);
-            progress = filename + " [" + std::to_string(pct) + "%]";
-        }
-        else
-        {
-            progress = filename + " [" + std::to_string(downloaded / 1024) + " KB]";
-        }
-        progressLabel->setText(progress);
+    callbacks.onFileProgress = [this, guard](const std::string& filename, size_t downloaded, size_t total) {
+        brls::sync([this, guard, filename, downloaded, total]() {
+            if (!*guard) return;
+            std::string progress;
+            if (total > 0)
+            {
+                int pct = (int)((downloaded * 100) / total);
+                progress = filename + " [" + std::to_string(pct) + "%]";
+            }
+            else
+            {
+                progress = filename + " [" + std::to_string(downloaded / 1024) + " KB]";
+            }
+            progressLabel->setText(progress);
+        });
     };
 
-    callbacks.onFileComplete = [this](const std::string& filename, bool success) {
-        if (success)
-            appendLog("  + " + filename + " ... OK");
-        else
-            appendLog("  ! " + filename + " ... FALHA");
+    callbacks.onFileComplete = [this, guard](const std::string& filename, bool success) {
+        brls::sync([this, guard, filename, success]() {
+            if (!*guard) return;
+            if (success)
+                appendLog("  + " + filename + " ... OK");
+            else
+                appendLog("  ! " + filename + " ... FALHA");
+        });
     };
 
-    callbacks.onComplete = [this](const netsync::SyncResult& result) {
-        std::string summary = "  -> " +
-            std::to_string(result.files_downloaded) + " baixados, " +
-            std::to_string(result.files_skipped) + " ignorados";
-        if (result.files_failed > 0)
-            summary += ", " + std::to_string(result.files_failed) + " falharam";
+    callbacks.onComplete = [this, guard](const netsync::SyncResult& result) {
+        brls::sync([this, guard, result]() {
+            if (!*guard) return;
+            std::string summary = "  -> " +
+                std::to_string(result.files_downloaded) + " baixados, " +
+                std::to_string(result.files_skipped) + " ignorados";
+            if (result.files_failed > 0)
+                summary += ", " + std::to_string(result.files_failed) + " falharam";
 
-        appendLog(summary);
-        appendLog("$ sync complete");
-        progressLabel->setText(summary);
-        statusLabel->setText("Status: Concluido");
-        isSyncing = false;
+            appendLog(summary);
+            appendLog("$ sync complete");
+            progressLabel->setText(summary);
+            statusLabel->setText("Status: Concluido");
+            isSyncing = false;
+        });
     };
 
-    syncManager.runSync(callbacks);
+    // Rodar sync em thread separada para não bloquear a UI
+    std::thread([this, guard, callbacks]() {
+        syncManager.runSync(callbacks);
+    }).detach();
 }
 
 void SyncTab::appendLog(const std::string& text)
