@@ -36,7 +36,14 @@ watch:
 	@./watch.sh
 
 serve:
-	@cd server && python3 serve.py --dir ./data
+	@SERVER_PATH="../roms-manager-server/serve.py"; \
+	if [ ! -f "$$SERVER_PATH" ]; then \
+		echo "[erro] Servidor não encontrado em: $$SERVER_PATH"; \
+		echo "       Clone o repositório primeiro:"; \
+		echo "       git clone https://github.com/eliasrosa/roms-manager-server ../roms-manager-server"; \
+		exit 1; \
+	fi; \
+	python3 "$$SERVER_PATH" --dir ./data
 
 deploy:
 	@echo "=== Deploy via nxlink ==="
