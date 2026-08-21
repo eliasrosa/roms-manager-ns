@@ -4,7 +4,8 @@
 
 App homebrew para Nintendo Switch (Atmosphère) que gerencia ROMs no SD card e sincroniza via WiFi com um servidor local.
 
-- **Repositório**: github.com/eliasrosa/roms-manager-ns
+- **Repositório (app)**: github.com/eliasrosa/roms-manager-ns
+- **Repositório (server)**: github.com/eliasrosa/roms-manager-server
 - **Autor**: elfarelo (eliasrosa)
 - **Licença**: MIT
 
@@ -16,14 +17,13 @@ App homebrew para Nintendo Switch (Atmosphère) que gerencia ROMs no SD card e s
 - **Rede**: Sockets BSD (sem libcurl)
 - **SDK**: devkitPro / devkitA64 / libnx
 - **Build**: Make (Switch + PC) / Meson (PC) / Docker (Switch)
-- **Servidor**: Python 3 stdlib
+- **Servidor**: Python 3 stdlib (repo separado: [roms-manager-server](https://github.com/eliasrosa/roms-manager-server))
 
 ## Estrutura principal
 
 - `src/` — código C++ do app
 - `src/views/` — componentes de UI (herdam de brls::Box)
 - `src/sync/` — módulo de sync HTTP (config, http_client, sync_manager)
-- `server/` — servidor Python de sync
 - `resources/xml/` — layouts XML do Borealis
 - `library/` — submodule Borealis
 - `test_sd/` — SD card fake para testes no PC
@@ -69,7 +69,7 @@ Cadeia de build completa para gerar .nro:
 ```bash
 make pc          # testa no PC (cmake)
 make watch       # hot reload
-make serve       # servidor sync
+make serve       # servidor sync (requer ../roms-manager-server clonado)
 make build       # gera .nro (Docker)
 make deploy      # envia via nxlink
 make install     # copia via FTP

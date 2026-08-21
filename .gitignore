@@ -22,7 +22,6 @@ resources/xml/views/captioned_image.xml
 
 # Test data
 test_sd/
-server/data/
 
 # Config local (pode conter IP da rede)
 config.local.json
