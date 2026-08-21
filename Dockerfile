@@ -9,8 +9,12 @@ RUN apt-get update && apt-get install -y cmake build-essential && apt-get clean
 ENV PATH="/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:${PATH}"
 
 # Instalar pacotes Switch
-RUN dkp-pacman -Syyu --noconfirm && \
-    dkp-pacman -S --noconfirm \
+# Tenta sync com retry; se falhar, usa cache local da imagem base
+RUN for i in 1 2 3; do \
+        dkp-pacman -Syy --noconfirm && break || \
+        (echo "Tentativa $i falhou, aguardando 5s..." && sleep 5); \
+    done; \
+    dkp-pacman -S --noconfirm --needed \
         switch-glfw \
         switch-mesa \
         switch-glm \
