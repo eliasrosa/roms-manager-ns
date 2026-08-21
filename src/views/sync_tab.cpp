@@ -134,9 +134,11 @@ void SyncTab::onTestConnection()
     connectionIcon->setTextColor(nvgRGBA(200, 200, 100, 255));
     appendLog("$ test connection " + syncManager.getConfig().server.baseUrl());
 
-    // Rodar em thread separada para não bloquear a UI
+    // Rodar fora da UI thread usando o task loop do Borealis.
+    // NÃO usar std::thread: no devkitA64 ela lança std::system_error(ENOSYS)
+    // e mata o app. O Borealis já mantém uma thread pthread para isso.
     auto guard = alive;
-    std::thread([this, guard]() {
+    brls::async([this, guard]() {
         std::string error;
         bool ok = syncManager.testConnection(error);
 
@@ -161,7 +163,7 @@ void SyncTab::onTestConnection()
 
             isSyncing = false;
         });
-    }).detach();
+    });
 }
 
 void SyncTab::onStartSync()
@@ -228,10 +230,11 @@ void SyncTab::onStartSync()
         });
     };
 
-    // Rodar sync em thread separada para não bloquear a UI
-    std::thread([this, guard, callbacks]() {
+    // Rodar sync fora da UI thread via task loop do Borealis (ver nota em
+    // onTestConnection sobre std::thread no devkitA64)
+    brls::async([this, guard, callbacks]() {
         syncManager.runSync(callbacks);
-    }).detach();
+    });
 }
 
 void SyncTab::appendLog(const std::string& text)

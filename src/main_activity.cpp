@@ -3,7 +3,6 @@
 #include <borealis.hpp>
 #include <borealis/core/thread.hpp>
 #include <cstdio>
-#include <thread>
 
 #include "platform.hpp"
 #include "sync/config.hpp"
@@ -143,6 +142,10 @@ void MainActivity::onContentAvailable()
 
 void MainActivity::checkConnection()
 {
+    // Evitar re-entrada
+    if (checking) return;
+    checking = true;
+
     // Iniciar spinner
     spinner = new SpinnerTask(wifiIcon);
     spinner->start();
@@ -152,15 +155,22 @@ void MainActivity::checkConnection()
 
     auto config = netsync::loadConfig(netsync::getConfigPath());
     std::string url = config.server.baseUrl() + "/health";
+    brls::Logger::info("Testando conexao: {}", url);
 
-    std::thread([this, url]() {
+    // Rodar fora da UI thread usando o task loop do Borealis.
+    // NÃO usar std::thread: no devkitA64 ela lança std::system_error(ENOSYS)
+    // e mata o app. O Borealis já mantém uma thread pthread para isso.
+    brls::async([this, url]() {
         netsync::HttpResponse resp = netsync::httpGet(url);
 
         brls::sync([this, resp]() {
-            // Parar e destruir spinner
-            spinner->stop();
-            delete spinner;
-            spinner = nullptr;
+            // Parar spinner
+            if (spinner)
+            {
+                spinner->stop();
+                delete spinner;
+                spinner = nullptr;
+            }
 
             // Restaurar ícone wifi
             wifiIcon->setText("\xEE\x98\xBE");
@@ -173,10 +183,14 @@ void MainActivity::checkConnection()
             }
             else
             {
+                brls::Logger::warning("Conexao falhou: {}", resp.error);
                 wifiIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
                 wifiStatus->setText(" OFF");
                 wifiStatus->setTextColor(nvgRGBA(244, 67, 54, 255));
             }
+
+            checking = false;
         });
-    }).detach();
+    });
 }
+

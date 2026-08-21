@@ -2,8 +2,6 @@
 
 #include <borealis.hpp>
 #include <borealis/core/task.hpp>
-#include <atomic>
-#include <memory>
 
 class MainActivity : public brls::Activity
 {
@@ -32,6 +30,7 @@ class MainActivity : public brls::Activity
     };
 
     SpinnerTask* spinner = nullptr;
+    bool checking = false;
 
     void checkConnection();
 };
