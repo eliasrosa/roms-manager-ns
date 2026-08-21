@@ -23,6 +23,9 @@ resources/xml/views/captioned_image.xml
 # Test data
 test_sd/
 
+# Kiro specs (locais)
+.kiro/specs/
+
 # Config local (pode conter IP da rede)
 config.local.json
 
