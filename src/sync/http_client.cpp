@@ -9,6 +9,7 @@
 #include "http_client.hpp"
 
 #include <cstring>
+#include <cstdio>
 #include <sstream>
 #include <fstream>
 
@@ -46,10 +47,19 @@ struct UrlParts
 
 /**
  * Retorna mensagem de erro legível para errno atual
+ *
+ * IMPORTANTE: no newlib (devkitPro) strerror() pode retornar NULL para
+ * valores de errno que ele não mapeia — e os erros de socket do libnx vêm
+ * do serviço bsd:s, fora do range padrão. std::string(NULL) causa crash
+ * imediato no Switch. Sempre validar o retorno antes de construir a string.
  */
 std::string errnoMessage()
 {
-    return std::string(strerror(errno));
+    int err = errno;
+    const char* msg = strerror(err);
+    if (msg == nullptr || *msg == '\0')
+        return "errno " + std::to_string(err);
+    return std::string(msg);
 }
 
 /**
@@ -134,43 +144,46 @@ UrlParts parseUrl(const std::string& url)
  */
 int connectToHost(const std::string& host, int port, std::string& errorOut)
 {
-    struct addrinfo hints, *res = nullptr;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
+    // Resolver endereço — IP direto (sem DNS)
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
 
-    std::string portStr = std::to_string(port);
-    int err = getaddrinfo(host.c_str(), portStr.c_str(), &hints, &res);
-    if (err != 0)
+    if (inet_aton(host.c_str(), &addr.sin_addr) == 0)
     {
-        errorOut = "DNS falhou para '" + host + "': " + std::string(gai_strerror(err));
-        return -1;
+        struct hostent* he = gethostbyname(host.c_str());
+        if (!he || !he->h_addr_list || !he->h_addr_list[0] || he->h_length <= 0)
+        {
+            errorOut = "DNS falhou para '" + host + "'";
+            return -1;
+        }
+        memcpy(&addr.sin_addr, he->h_addr_list[0],
+               he->h_length > (int)sizeof(addr.sin_addr) ? sizeof(addr.sin_addr) : he->h_length);
     }
 
-    int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
     {
         errorOut = "Falha ao criar socket: " + errnoMessage();
-        freeaddrinfo(res);
         return -1;
     }
 
-    // Timeout de 10 segundos para send/recv
+    // Timeout para send/recv (3s)
     struct timeval tv;
-    tv.tv_sec = 10;
+    tv.tv_sec = 3;
     tv.tv_usec = 0;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
-    if (connect(sock, res->ai_addr, res->ai_addrlen) < 0)
+    std::string portStr = std::to_string(port);
+    if (connect(sock, (struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
         errorOut = "Conexao recusada em " + host + ":" + portStr + " (" + errnoMessage() + ")";
         close(sock);
-        freeaddrinfo(res);
         return -1;
     }
 
-    freeaddrinfo(res);
     return sock;
 }
 
