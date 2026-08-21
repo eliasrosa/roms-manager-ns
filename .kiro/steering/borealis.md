@@ -69,6 +69,8 @@ view->getChildren()                      // vector<View*>&
 - Label não é focável — não dar giveFocus em Label
 - `createFromXMLResource("file.xml")` → busca em `BRLS_RESOURCES/xml/file.xml`
 - **Button actions disparam em repeat** se o botão for segurado. Usar flag `isBusy` para impedir re-entrada em operações demoradas (rede, I/O).
+- **Copiar XML de outros projetos**: testar com atributos mínimos primeiro e ir adicionando um a um. Atributos como `iconInterpolation` só devem ser usados se houver ícone definido — caso contrário podem causar textos invisíveis.
+- **AppletFrame**: aceita exatamente 1 child XML. O `title` do content view (ex: `TabFrame`) é exibido no header automaticamente via `getAppletFrameItem()`.
 
 ### XML
 ```xml
