@@ -24,7 +24,11 @@
 - Para navegação: usar `Application::pushActivity()` (stack-based)
 - XML de activities em `resources/xml/activity/`
 - Referenciar resources com path relativo ao BRLS_RESOURCES (sem prefixo `xml/` no código)
-- **Fontes obrigatórias** para renderizar texto no PC: `resources/font/switch_font.ttf` e `switch_icons.ttf` (copiar de `library/resources/font/`). Sem elas nenhum texto aparece no desktop.
+- **Fontes obrigatórias** para renderizar texto no PC:
+  `resources/font/switch_font.ttf` e `switch_icons.ttf`. Sem elas **nenhum** texto
+  aparece no desktop. Copiar de `library/resources/font/` (atenção: o path é esse,
+  não `library/library/resources/`). O `setup-resources.sh` cria os symlinks de
+  `i18n img inter material` mas **não** cobre `font/` — essa cópia é manual.
 - `AppletFrame` com `TabFrame` interno: não usar `iconInterpolation` no AppletFrame — causa textos invisíveis
 
 ## Rede
@@ -61,7 +65,10 @@
 
 - Nunca usar `sdmc:/` direto no código
 - Sempre usar `platform::sdRoot()` ou `platform::romsPath()`
-- Usar `#ifdef __SWITCH__` apenas em main.cpp, platform.hpp e main_activity.cpp
+- Manter `#ifdef __SWITCH__` concentrado. Hoje aparece em: `main.cpp`,
+  `main_activity.cpp`, `platform.hpp`, `debug_log.cpp`, `sync/http_client.cpp`,
+  `sync/config.cpp`, `sync/sync_manager.cpp`. Antes de adicionar um novo,
+  verificar se dá para resolver via `platform.hpp`
 - **Configs editáveis pelo usuário NUNCA no romfs**. Ler do SD card (`sdmc:/switch/<app>/config.json`) com fallback para defaults hardcoded no código. Romfs é read-only e exige rebuild para alterar.
 - **nsInitialize/nsExit**: centralizar chamada no `onContentAvailable()` da MainActivity, não dentro de cada função de platform
 
@@ -69,7 +76,14 @@
 
 - Mensagens de commit em pt-BR com prefixo convencional
 - Branch de dev separada, nunca push direto na main
-- Não commitar: build/, build-pc/, build.nx/, *.nro, test_sd/
+- O `.gitignore` é a fonte da verdade do que não versionar. Cobre builds
+  (`build-pc/`, `build.nx/`, `*.nro`, `*.nacp`, `*.elf`), assets copiados
+  (`resources/font`, `i18n`, `img`, `inter`, `material`, `shaders/`), logs
+  (`.logs/`, `debug.log*`), config local (`config.local.json`), `test_sd/` e
+  `.kiro/specs/`
+- ⚠️ Ao alterar o submodule `library/`, commitar e dar push **no fork** antes de
+  rodar `make build` — o build roda `git submodule update` e descarta trabalho
+  não commitado. Ver `borealis-fork.md`
 
 ## Debugging e Reprodução
 
@@ -77,38 +91,19 @@
 - Pode quebrar em partes para diagnosticar, mas o teste final deve ser pelo target do Make
 - Nunca considerar o bug resolvido sem rodar o comando original e confirmar exit code 0
 
-### Ordem dos logs no nxlink NÃO é ordem de execução
+### Diagnóstico no Switch
 
-- `printf` e `brls::Logger` usam buffers diferentes. No output do nxlink as
-  linhas aparecem **fora de ordem** — já foi visto `userAppExit` impresso
-  antes de logs de código que rodou muito antes dele.
-- **Não concluir "morreu aqui" pelo último log impresso.** Para instrumentar
-  um caminho suspeito, usar `printf(...)` seguido de `fflush(stdout)` em
-  todos os pontos, garantindo ordem real.
-- Usar marcadores numerados (`[net] c1`, `c2`, ...) em vez de texto solto:
-  fica óbvio qual etapa não foi alcançada.
+Ver **`debug.md`** para os canais de log, como capturar (`make logs`,
+`make logs-live`), como distinguir `abort()` de segfault, e por que a ordem dos
+logs no nxlink não é a ordem de execução.
 
-### Distinguir crash de exceção
+Dois pontos que valem repetir aqui, porque já custaram horas:
 
-| Sintoma | Causa provável |
-|---|---|
-| `userAppExit` no log, mas printf final do `main` ausente | `abort()` — exceção não capturada / `std::terminate` |
-| Nada no log, crash report em `sdmc:/atmosphere/crash_reports/` | data abort / segfault real |
-| App fecha e printf final do `main` aparece | exit normal (`Application::quit()`) |
-
-- Exceção não capturada **não** gera crash report do Atmosphère — por isso o
-  handler de `std::set_terminate` no `main.cpp` é essencial.
-
-### Validar caminhos de erro no PC antes de gastar ciclo de build Switch
-
-- O build Switch via Docker leva minutos e depende do nxlink aberto. Antes de
-  enviar, compilar o módulo isolado no PC com um `main` de teste
-  (`g++ -std=gnu++17 -o /tmp/t teste.cpp src/sync/http_client.cpp -I src`)
-  e exercitar os casos de falha (porta fechada, host inexistente, DNS
-  inválido, URL malformada).
-- Atenção: no PC (glibc) alguns bugs **não** reproduzem — `strerror` nunca
-  retorna NULL e `std::thread` funciona. Serve para validar lógica, não para
-  provar que funciona no Switch.
+- Exceção C++ não capturada **não** gera crash report do Atmosphère e o log dá a
+  impressão de ter morrido no lugar errado.
+- Antes de gastar um ciclo de build Switch, exercitar o caminho de erro no PC
+  compilando o módulo isolado. Mas lembrar que glibc esconde bugs que o newlib
+  expõe (`strerror` retornando NULL, `std::thread` funcionando).
 
 ## nxlink (deploy para Switch)
 

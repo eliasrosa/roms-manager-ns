@@ -17,40 +17,76 @@ App homebrew para Nintendo Switch (Atmosphère) que gerencia ROMs no SD card e s
 - **GPU**: deko3d (Switch) / OpenGL+GLFW (PC)
 - **Rede**: Sockets BSD (sem libcurl)
 - **SDK**: devkitPro / devkitA64 / libnx
-- **Build**: Make (Switch) / CMake (PC) / Docker (Switch)
+- **Build**: Docker + CMake (Switch) / CMake (PC). O `Makefile` é só orquestração.
 - **Servidor**: Node.js 24 + Express + MongoDB (repo separado: [roms-manager-server](https://github.com/eliasrosa/roms-manager-server))
 
 ## Estrutura principal
 
-- `src/` — código C++ do app
-- `src/views/` — componentes de UI (herdam de brls::Box)
-- `src/sync/` — módulo de sync HTTP (config, http_client, sync_manager)
+Código:
+
+- `src/main.cpp` — entry point, handler de `std::set_terminate`, init do debug
+- `src/main_activity.*` — activity raiz (header com storage e indicador WiFi)
+- `src/platform.hpp` — abstração Switch/PC (`sdRoot()`, `romsPath()`, storage)
+- `src/debug_log.*` — canais de diagnóstico (namespace `dbg`), ver `debug.md`
+- `src/views/` — tabs de UI: `file_browser_tab`, `sync_tab`, `settings_tab`
+- `src/sync/` — módulo HTTP: `config`, `http_client`, `sync_manager`
+
+Build e recursos:
+
+- `CMakeLists.txt` — build real (PC e Switch)
+- `cmake/SwitchToolchain.cmake` — toolchain de cross-compile
+- `Dockerfile` + `build.sh` — build Switch containerizado (`make build`)
+- `watch.sh` — hot reload no PC (`make watch`)
+- `setup-resources.sh` — cria os symlinks de `resources/`
 - `resources/xml/` — layouts XML do Borealis
-- `library/` — submodule Borealis (fork com patches locais)
+- `library/` — submodule Borealis (**fork com patches**, ver `borealis-fork.md`)
+- `icon.jpg` — ícone do .nro, referenciado pelo `elf2nro`
+
+Não versionado (mas necessário):
+
+- `resources/font`, `i18n`, `img`, `inter`, `material` — gitignorados. Um clone
+  limpo **não** tem esses assets. As fontes (`switch_font.ttf`,
+  `switch_icons.ttf`) precisam ser copiadas à mão de `library/resources/font/`;
+  o `setup-resources.sh` **não** cobre `font/`.
+- `config.local.json` — override do config no PC. `getConfigPath()` tenta esse
+  arquivo antes do `config.json`. Útil para não sujar o config versionado.
 - `test_sd/` — SD card fake para testes no PC
-- `config.json` — configuração padrão do app
+
+Resíduos (não usar como referência):
+
+- `source/`, `include/`, `romfs/` — diretórios vazios do template devkitPro
+- `xmake.lua`, `toolchain/`, `.xmake/` — tentativa de build com xmake, abandonada
+- `meson.build` — build PC antigo, hoje é CMake
 
 ## Server — Endpoints (roms-manager-server)
 
-| Método | Path | Descrição |
-|--------|------|-----------|
-| `GET` | `/health` | Status do servidor |
-| `GET` | `/roms` | Lista ROMs (filtros: `?platform=`, `?crc32=`, `?md5=`) |
-| `GET` | `/roms/:platform/:filename` | Download direto da ROM |
-| `POST` | `/roms/sync?platform=gba` | Re-indexa ROMs no disco |
+| Método | Path | Descrição | Usado pelo app? |
+|--------|------|-----------|-----------------|
+| `GET` | `/health` | Status do servidor | ✅ `testConnection()` |
+| `GET` | `/roms` | Lista ROMs (`?platform=`, `?crc32=`, `?md5=`) | ❌ ainda não |
+| `GET` | `/roms/:platform/:filename` | Download direto da ROM | ❌ ainda não |
+| `POST` | `/roms/sync?platform=gba` | Re-indexa ROMs no disco | ❌ ainda não |
 
-### Fluxo de sync (planejado — migração pendente)
+### Fluxo de sync atual (legado — desalinhado do servidor)
 
-1. App faz `GET /roms?platform=gba` → recebe lista com `filename`, `size`, `crc32`
-2. Compara com storage local (por filename + crc32)
-3. Baixa apenas ROMs ausentes ou divergentes via `GET /roms/:platform/:filename`
-4. Verifica CRC32 localmente após download
+`SyncManager::fetchManifest()` chama **`GET /manifest.json`**, que **não existe**
+no servidor Node.js. Na prática o sync está quebrado: o log mostra
+`Falha ao buscar manifest:` com erro vazio, porque o HTTP em si teve sucesso
+(404) mas o parse não encontra nada.
 
-### Fluxo de sync (atual — legado, será substituído)
+1. `GET /manifest.json` → esperava lista com `path`, `size`, `md5`, `modified`
+2. `shouldDownload()` compara **só existência e tamanho** do arquivo local
+3. Download por URL direta (`baseUrl + path`)
 
-1. App faz `GET /manifest.json` → recebe lista com `path`, `size`, `md5`
-2. Compara por tamanho de arquivo
-3. Baixa via URL direta (`baseUrl + path`)
+⚠️ `sync.verify_hash` no config **não tem efeito** — há um
+`// TODO: comparar MD5` em `sync_manager.cpp`. O campo existe mas é ignorado.
+
+### Fluxo de sync planejado (migração pendente)
+
+1. `GET /roms?platform=gba` → lista com `filename`, `size`, `crc32`
+2. Comparar com storage local por filename + crc32
+3. Baixar ausentes/divergentes via `GET /roms/:platform/:filename`
+4. Verificar CRC32 após o download
 
 ## Convenções de código
 
@@ -75,32 +111,81 @@ Cadeia de build completa para gerar .nro:
 8. **nxlink logs**: definir `-DDEBUG` para `switch_wrapper.c` habilitar `nxlinkStdio()`.
 
 ### Problemas conhecidos
+
 - `BRLS_UNITY_BUILD` deve ser OFF (variável não definida causa erro no CMake)
-- Porta 28771 do nxlink pode ficar presa após timeout — matar processo antes de re-deploy
-- resources/xml NÃO pode ser symlink — deve ser diretório real com nosso main.xml
-- **hbmenu injeta evento + no startup** — `setGlobalQuit(true)` só no PC; no Switch usar `setIgnoreExitRequest` com delay de 1s
+- `resources/xml` NÃO pode ser symlink — diretório real com nosso `main.xml`
+- **`APP_SOURCES` no `CMakeLists.txt` é lista explícita, não GLOB.** Criar um
+  `.cpp` novo em `src/` e esquecer de adicioná-lo ali resulta em erro de link
+  sem pista óbvia.
+- **O build Switch via `Makefile`/devkitPro está morto.** `Makefile` faz
+  `include .../borealis.mk`, arquivo que não existe nesta branch do fork. Todo o
+  bloco `ifeq ($(strip $(DEVKITPRO)),)`...`else` (~200 linhas de regras devkitPro)
+  é código morto que quebra se alguém exportar `DEVKITPRO`. O caminho válido é
+  Docker → CMake. Consequência prática: `make clean` e `make clean-all` só
+  existem quando `DEVKITPRO` está definido, ou seja **falham no uso normal**.
+- Porta 28771 do nxlink pode ficar presa após timeout. O target `deploy` já faz
+  `pkill -f nxlink` automaticamente; ao rodar o nxlink na mão, matar antes.
 
-## Variáveis de ambiente
+## Variáveis do Makefile
 
-- `SWITCH_IP` — IP do Switch na rede (default: 192.168.0.150)
-- `SWITCH_FTP_PORT` — porta do ftpd (default: 5000)
-- `DEVKITPRO` — path do devkitPro (só para build local sem Docker)
+| Variável | Default | Para que serve |
+|---|---|---|
+| `SWITCH_IP` | `192.168.0.150` | IP do Switch (nxlink e FTP) |
+| `SWITCH_FTP_PORT` | `5000` | porta do ftpd no Switch |
+| `HOST_IP` | autodetectado (`ip route`) | IP desta máquina, para o Switch saber onde mandar os logs. Override: `make install-debug HOST_IP=192.168.0.4` |
+| `NXLINK_LOG_PORT` | `28771` | porta que recebe os logs (`NXLINK_CLIENT_PORT` do libnx) |
+| `APP_DIR` | `/switch/roms-manager-ns` | destino no SD card |
+| `DEVKITPRO` | — | só para o bloco de build legado (morto, ver acima) |
 
 ## Targets do Makefile
 
 ```bash
-make pc          # testa no PC (cmake)
-make watch       # hot reload
-make serve       # servidor sync (requer ../roms-manager-server clonado)
-make build       # gera .nro (Docker)
-make deploy      # envia via nxlink
-make install     # copia via FTP
+# PC
+make pc            # compila e executa
+make pc-build      # só compila
+make pc-setup      # roda o cmake -B build-pc (implícito nos anteriores)
+make watch         # hot reload
+make clean-pc      # remove build-pc
+
+# Switch
+make build         # gera o .nro via Docker
+make deploy        # envia e executa via nxlink (temporário, dev)
+make install       # instala via FTP (permanente)
+make deploy-fresh  # build + deploy
+make install-fresh # build + install
+
+# Debug — ver debug.md
+make install-debug # instala via FTP com logs habilitados
+make logs-live     # escuta logs em tempo real
+make logs          # baixa debug.log do SD
+make logs-clean    # remove logs locais
+
+# Servidor
+make serve         # sobe o roms-manager-server (requer ../roms-manager-server)
 ```
+
+`make clean` / `make clean-all` existem, mas só com `DEVKITPRO` definido —
+na prática falham. Para limpar: `make clean-pc` e `rm -f *.nro`.
+
+## Steerings deste projeto
+
+| Arquivo | Assunto |
+|---|---|
+| `project.md` | este — contexto geral, build, estrutura |
+| `coding.md` | convenções de código, threading, git |
+| `borealis.md` | API do Borealis (carregado ao mexer em `src/**`) |
+| `debug.md` | capturar logs e investigar crash no Switch |
+| `borealis-fork.md` | patches no submodule e risco de perdê-los |
 
 ## Troubleshooting — Ordem de Investigação
 
 - **Problemas com deploy/install/build**: investigar `Makefile` + `build.sh` PRIMEIRO, não o código C++ do app. O app não controla como é copiado/instalado — isso é responsabilidade dos scripts de build.
 - **Problemas de runtime** (crash, UI, lógica): aí sim investigar `src/`
+- **App fecha sozinho ou morre numa ação**: ver `debug.md`. Atenção: exceção não
+  capturada não gera crash report do Atmosphère, e a ordem dos logs no nxlink não
+  é a ordem de execução.
+- **Comportamento estranho do framework**: conferir `borealis-fork.md` antes de
+  culpar o upstream — o submodule tem patches locais.
 
 ## APIs libnx — Notas Importantes
 
@@ -115,7 +200,11 @@ make install     # copia via FTP
 
 ### Material Icons (Borealis)
 
-- Fonte carregada como fallback: `library/resources/material/MaterialIcons-Regular.ttf`
+- O Borealis resolve via `BRLS_ASSET("material/MaterialIcons-Regular.ttf")`, ou
+  seja relativo ao `BRLS_RESOURCES` — `./resources/` no PC, `romfs:/` no Switch.
+  O arquivo efetivamente carregado é `resources/material/MaterialIcons-Regular.ttf`;
+  `library/resources/material/` é apenas a origem de onde o `setup-resources.sh`
+  copia.
 - Usar codepoints UTF-8 diretamente no texto do Label (ex: `"\xEE\x98\xA3"` para U+E623)
 - Nem todos os codepoints do range renderizam — testar com `fc-query --format='%{charset}\n'`
 - Codepoints confirmados funcionais:

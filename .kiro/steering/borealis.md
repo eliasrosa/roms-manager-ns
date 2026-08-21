@@ -3,7 +3,10 @@ inclusion: fileMatch
 fileMatchPattern: "src/**"
 ---
 
-# Borealis — Referência Rápida (branch main)
+# Borealis — Referência Rápida
+
+Fork `eliasrosa/borealis`, branch **`wiliwili`** (base: xfangfang). O submodule
+tem patches locais — ver `borealis-fork.md` antes de suspeitar do upstream.
 
 ## API Principal
 
@@ -38,6 +41,22 @@ brls::delay(500, []() { /* após 500ms */ });     // one-shot
 - Ao capturar `this` num callback assíncrono de uma View que pode ser
   destruída, usar um guard `std::shared_ptr<std::atomic<bool>>` e checá-lo no
   início do `sync` (ver `SyncTab::alive`).
+
+### Logger
+```cpp
+brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
+brls::Logger::info("valor: {}", x);          // usa fmt, não printf
+brls::Logger::setLogOutput(FILE*);           // redireciona a saída
+brls::Logger::getLogEvent()->subscribe(cb);  // espelha sem perder o stdout
+```
+
+- O formato é **fmt** (`{}`), não printf (`%s`). Formato inválido não crasha: cai
+  num catch interno que imprime `! Invalid log format string`.
+- `getLogEvent()` é o jeito de adicionar um sink extra (é assim que
+  `src/debug_log.cpp` grava em arquivo mantendo o log no nxlink). O callback roda
+  **dentro** do mutex do Logger, então não precisa de sincronização própria — mas
+  não deve lançar exceção nem chamar o `Logger` de volta.
+- `setThreadSafeLogging(bool)` controla esse mutex.
 
 ### Activity
 ```cpp
