@@ -18,6 +18,27 @@ brls::Application::mainLoop()                // loop (retorna false para sair)
 brls::Application::giveFocus(view)           // foco manual
 ```
 
+### Threading
+```cpp
+#include <borealis/core/thread.hpp>
+
+brls::async([]() { /* fora da UI thread */ });   // enfileira no task loop
+brls::sync([]()  { /* na UI thread */ });        // volta pra UI thread
+brls::delay(500, []() { /* após 500ms */ });     // one-shot
+```
+
+- ⚠️ **NUNCA usar `std::thread` no Switch** — no devkitA64 ela lança
+  `std::system_error(ENOSYS)` e o app morre por `abort()`. O próprio Borealis
+  evita `std::thread`: usa `pthread_create` direto, a menos que
+  `BOREALIS_USE_STD_THREAD` esteja definido.
+- `brls::async` **não** cria uma thread por chamada — o Borealis mantém uma
+  única task loop thread e enfileira nela. Tasks longas serializam.
+- Borealis não é thread-safe: qualquer mudança de View precisa passar por
+  `brls::sync`.
+- Ao capturar `this` num callback assíncrono de uma View que pode ser
+  destruída, usar um guard `std::shared_ptr<std::atomic<bool>>` e checá-lo no
+  início do `sync` (ver `SyncTab::alive`).
+
 ### Activity
 ```cpp
 class MyActivity : public brls::Activity {
