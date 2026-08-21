@@ -60,7 +60,6 @@ inline StorageInfo getSdInfo()
     StorageInfo info = {0.0, 0.0, 0.0, 0};
 
 #ifdef __SWITCH__
-    nsInitialize();
     s64 total = 0, free = 0;
     if (R_SUCCEEDED(nsGetTotalSpaceSize(NcmStorageId_SdCard, &total)) &&
         R_SUCCEEDED(nsGetFreeSpaceSize(NcmStorageId_SdCard, &free)))
@@ -69,7 +68,6 @@ inline StorageInfo getSdInfo()
         info.freeGB = static_cast<double>(free) / (1024.0 * 1024.0 * 1024.0);
         info.usedGB = info.totalGB - info.freeGB;
     }
-    nsExit();
 #else
     struct statvfs stat;
     if (statvfs(sdRoot().c_str(), &stat) == 0)
@@ -93,7 +91,6 @@ inline StorageInfo getSystemInfo()
     StorageInfo info = {0.0, 0.0, 0.0, 0};
 
 #ifdef __SWITCH__
-    nsInitialize();
     s64 total = 0, free = 0;
     if (R_SUCCEEDED(nsGetTotalSpaceSize(NcmStorageId_BuiltInUser, &total)) &&
         R_SUCCEEDED(nsGetFreeSpaceSize(NcmStorageId_BuiltInUser, &free)))
@@ -102,7 +99,6 @@ inline StorageInfo getSystemInfo()
         info.freeGB = static_cast<double>(free) / (1024.0 * 1024.0 * 1024.0);
         info.usedGB = info.totalGB - info.freeGB;
     }
-    nsExit();
 #else
     // No PC, simula com o filesystem raiz
     struct statvfs stat;

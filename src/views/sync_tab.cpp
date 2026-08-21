@@ -31,13 +31,6 @@ SyncTab::SyncTab()
     this->buildUI();
     this->appendLog("ROMs Manager NS v0.2.0 - Sync");
     this->appendLog("Servidor: " + syncManager.getConfig().server.baseUrl());
-
-    // Testar conexão automaticamente após a UI estar pronta
-    auto guard = alive;
-    brls::delay(500, [this, guard]() {
-        if (!*guard) return;
-        this->onTestConnection();
-    });
 }
 
 SyncTab::~SyncTab()
@@ -66,7 +59,7 @@ void SyncTab::buildUI()
 
     // Status da conexão
     statusLabel = new brls::Label();
-    statusLabel->setText("Verificando...");
+    statusLabel->setText("Nao testado");
     statusLabel->setFontSize(18);
     statusLabel->setTextColor(nvgRGBA(150, 150, 150, 255));
     connectionRow->addView(statusLabel);

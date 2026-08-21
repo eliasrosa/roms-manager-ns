@@ -3,10 +3,15 @@
 #include <borealis.hpp>
 #include <borealis/core/thread.hpp>
 #include <cstdio>
+#include <thread>
 
 #include "platform.hpp"
 #include "sync/config.hpp"
 #include "sync/http_client.hpp"
+
+#ifdef __SWITCH__
+#include <switch.h>
+#endif
 
 namespace {
 
@@ -67,8 +72,22 @@ brls::Box* createStorageRow(const char* icon, const platform::StorageInfo& info)
 
 void MainActivity::onContentAvailable()
 {
+    brls::Logger::info("onContentAvailable: inicio");
+
+#ifdef __SWITCH__
+    brls::Logger::info("onContentAvailable: nsInitialize");
+    nsInitialize();
+#endif
+    brls::Logger::info("onContentAvailable: getSdInfo");
     auto sdInfo = platform::getSdInfo();
+    brls::Logger::info("onContentAvailable: getSystemInfo");
     auto sysInfo = platform::getSystemInfo();
+#ifdef __SWITCH__
+    brls::Logger::info("onContentAvailable: nsExit");
+    nsExit();
+#endif
+
+    brls::Logger::info("onContentAvailable: criando container");
 
     // Container principal (horizontal, lado a lado)
     auto* container = new brls::Box();
@@ -106,6 +125,7 @@ void MainActivity::onContentAvailable()
     container->addView(sysRow);
 
     // Setar como hintView do TabFrame → aparece no header direito
+    brls::Logger::info("onContentAvailable: setHintView");
     auto* contentView = this->getView("applet");
     if (contentView)
     {
@@ -118,6 +138,7 @@ void MainActivity::onContentAvailable()
     }
 
     // Testar conexão após a UI estar pronta
+    brls::Logger::info("onContentAvailable: fim, agendando checkConnection");
     brls::delay(500, [this]() {
         this->checkConnection();
     });
@@ -125,21 +146,40 @@ void MainActivity::onContentAvailable()
 
 void MainActivity::checkConnection()
 {
+    // Iniciar spinner
+    spinner = new SpinnerTask(wifiIcon);
+    spinner->start();
+    wifiIcon->setTextColor(nvgRGBA(150, 150, 150, 255));
+    wifiStatus->setText(" ...");
+    wifiStatus->setTextColor(nvgRGBA(150, 150, 150, 255));
+
     auto config = netsync::loadConfig(netsync::getConfigPath());
     std::string url = config.server.baseUrl() + "/health";
 
-    netsync::HttpResponse resp = netsync::httpGet(url);
+    std::thread([this, url]() {
+        netsync::HttpResponse resp = netsync::httpGet(url);
 
-    if (resp.ok())
-    {
-        wifiIcon->setTextColor(nvgRGBA(76, 175, 80, 255));
-        wifiStatus->setText(" ON");
-        wifiStatus->setTextColor(nvgRGBA(76, 175, 80, 255));
-    }
-    else
-    {
-        wifiIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
-        wifiStatus->setText(" OFF");
-        wifiStatus->setTextColor(nvgRGBA(244, 67, 54, 255));
-    }
+        brls::sync([this, resp]() {
+            // Parar e destruir spinner
+            spinner->stop();
+            delete spinner;
+            spinner = nullptr;
+
+            // Restaurar ícone wifi
+            wifiIcon->setText("\xEE\x98\xBE");
+
+            if (resp.ok())
+            {
+                wifiIcon->setTextColor(nvgRGBA(76, 175, 80, 255));
+                wifiStatus->setText(" ON");
+                wifiStatus->setTextColor(nvgRGBA(76, 175, 80, 255));
+            }
+            else
+            {
+                wifiIcon->setTextColor(nvgRGBA(244, 67, 54, 255));
+                wifiStatus->setText(" OFF");
+                wifiStatus->setTextColor(nvgRGBA(244, 67, 54, 255));
+            }
+        });
+    }).detach();
 }
