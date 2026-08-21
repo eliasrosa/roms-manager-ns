@@ -159,37 +159,41 @@ std::string defaultLogPath()
 
 void init(const netsync::DebugConfig& cfg)
 {
+    // O arquivo é aberto ANTES de conectar o nxlink, para que o próprio
+    // resultado dessa conexão (ativada ou ignorada) fique registrado nele.
+    // Caso contrário o arquivo não diz nada sobre o canal em tempo real.
+    if (cfg.log_to_file)
+    {
+        std::string path = cfg.log_path.empty() ? defaultLogPath() : cfg.log_path;
+
+        if (openLogFile(path))
+        {
+            if (!subscribed)
+            {
+                brls::Logger::getLogEvent()->subscribe(writeToFile);
+                subscribed = true;
+            }
+
+            // Header de sessão: sem isso, ao abrir um log rotacionado não há
+            // como saber de quando ele é.
+            std::time_t now = std::time(nullptr);
+            std::tm tm = *std::localtime(&now);
+            std::fprintf(logFile,
+                         "=== ROMs Manager NS | sessao %04d-%02d-%02d %02d:%02d:%02d ===\n",
+                         tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+                         tm.tm_hour, tm.tm_min, tm.tm_sec);
+
+            brls::Logger::info("debug: log em arquivo -> {}", path);
+        }
+        else
+        {
+            brls::Logger::warning("debug: nao foi possivel abrir log em {}", path);
+        }
+    }
+
 #ifdef __SWITCH__
     connectManualNxlink(cfg.nxlink_host);
 #endif
-
-    if (!cfg.log_to_file)
-        return;
-
-    std::string path = cfg.log_path.empty() ? defaultLogPath() : cfg.log_path;
-
-    if (!openLogFile(path))
-    {
-        brls::Logger::warning("debug: nao foi possivel abrir log em {}", path);
-        return;
-    }
-
-    if (!subscribed)
-    {
-        brls::Logger::getLogEvent()->subscribe(writeToFile);
-        subscribed = true;
-    }
-
-    // Header de sessão: sem isso, ao abrir um log rotacionado não há como saber
-    // de quando ele é nem em que modo o app rodava.
-    std::time_t now = std::time(nullptr);
-    std::tm tm = *std::localtime(&now);
-    std::fprintf(logFile,
-                 "=== ROMs Manager NS | sessao %04d-%02d-%02d %02d:%02d:%02d ===\n",
-                 tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-                 tm.tm_hour, tm.tm_min, tm.tm_sec);
-
-    brls::Logger::info("debug: log em arquivo -> {}", path);
 }
 
 void shutdown()
