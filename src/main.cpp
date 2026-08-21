@@ -9,7 +9,6 @@
 
 #ifdef __SWITCH__
 #include <switch.h>
-extern "C" void setIgnoreExitRequest(bool ignore);
 #endif
 
 #include <stdio.h>
@@ -55,12 +54,8 @@ int main(int argc, char* argv[])
 
     printf("[main] Janela criada\n");
 
-    // Habilitar quit global com botão + (apenas no PC)
-    // No Switch via nxlink o hbmenu injeta um evento + ao abrir,
-    // o que fecharia o app imediatamente
-#ifndef __SWITCH__
+    // Habilitar quit global com botão +
     brls::Application::setGlobalQuit(true);
-#endif
 
     // Registrar views customizadas
     printf("[main] Registrando views...\n");
@@ -74,24 +69,11 @@ int main(int argc, char* argv[])
 
     printf("[main] Entrando no loop principal\n");
 
-#ifdef __SWITCH__
-    // Liberar o OnExitRequest após 1s — ignora o request espúrio do hbmenu no startup
-    brls::delay(1000, []() {
-        setIgnoreExitRequest(false);
-        brls::Logger::info("OnExitRequest habilitado");
-    });
-#endif
-
     // Loop principal
-    int frames = 0;
     while (brls::Application::mainLoop())
-    {
-        frames++;
-        if (frames <= 5)
-            brls::Logger::info("frame {}", frames);
-    }
+        ;
 
-    printf("[main] App encerrado após %d frames\n", frames);
+    printf("[main] App encerrado\n");
 
     return EXIT_SUCCESS;
 }

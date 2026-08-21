@@ -82,7 +82,7 @@ Cadeia de build completa para gerar .nro:
 
 ## Variáveis de ambiente
 
-- `SWITCH_IP` — IP do Switch na rede (default: 192.168.0.2)
+- `SWITCH_IP` — IP do Switch na rede (default: 192.168.0.150)
 - `SWITCH_FTP_PORT` — porta do ftpd (default: 5000)
 - `DEVKITPRO` — path do devkitPro (só para build local sem Docker)
 

@@ -137,11 +137,8 @@ void MainActivity::onContentAvailable()
         }
     }
 
-    // Testar conexão após a UI estar pronta
-    brls::Logger::info("onContentAvailable: fim, agendando checkConnection");
-    brls::delay(500, [this]() {
-        this->checkConnection();
-    });
+    // Conexão será testada manualmente pelo usuário na tab Sync
+    brls::Logger::info("onContentAvailable: fim");
 }
 
 void MainActivity::checkConnection()

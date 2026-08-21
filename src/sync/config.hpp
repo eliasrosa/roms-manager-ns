@@ -11,7 +11,7 @@ namespace netsync {
 
 struct ServerConfig
 {
-    std::string host = "192.168.0.3";
+    std::string host = "192.168.0.100";
     int port = 8080;
     std::string protocol = "http";
 

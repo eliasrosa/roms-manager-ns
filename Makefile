@@ -8,7 +8,7 @@
 ifneq ($(MAKELEVEL),1)
 
 # IP do Switch (modo nxlink) — alterar conforme sua rede
-SWITCH_IP ?= 192.168.0.2
+SWITCH_IP ?= 192.168.0.150
 SWITCH_FTP_PORT ?= 5000
 
 .PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh install install-fresh
