@@ -6,9 +6,10 @@ Gerenciador de ROMs homebrew para Nintendo Switch com interface gráfica nativa 
 
 - Interface gráfica estilo sistema do Switch (dark theme, animações)
 - Navegador de arquivos do SD card
-- **Sync via WiFi** — sincroniza ROMs, covers e saves com servidor na rede local
-- Detalhes de arquivo (nome, caminho, tamanho, extensão)
-- Tabs: Arquivos, Sync, Sobre
+- **Sync via WiFi** — sincroniza ROMs com servidor na rede local
+- Indicadores de espaço (microSD / System) no header
+- Indicador de conexão WiFi com spinner
+- Tabs: Arquivos, Sync, Configurações
 
 ## Controles
 
@@ -24,23 +25,21 @@ Gerenciador de ROMs homebrew para Nintendo Switch com interface gráfica nativa 
 
 ## Sync via WiFi
 
-O app sincroniza arquivos com um servidor HTTP rodando no PC/NAS da sua rede local.
+O app sincroniza ROMs com o [roms-manager-server](https://github.com/eliasrosa/roms-manager-server) — servidor Node.js + Express + MongoDB rodando no PC/NAS da sua rede local.
 
-### Setup do Servidor (PC)
+### Setup do Servidor
 
 ```bash
-cd server/
-
-# Colocar ROMs/covers na estrutura:
-# data/roms/    → .nsp, .xci, .nro
-# data/covers/  → .jpg, .png
-# data/saves/   → qualquer
-
-# Iniciar servidor
-python3 serve.py --port 8080 --dir ./data
+git clone https://github.com/eliasrosa/roms-manager-server ../roms-manager-server
+cd ../roms-manager-server
+cp .env.example .env
+docker compose up -d --build
 ```
 
-O servidor gera automaticamente o `manifest.json` com hash MD5 de cada arquivo.
+Coloque as ROMs em `data/<platform>/roms/` (ex: `data/gba/roms/`, `data/nes/roms/`).
+Execute `POST /roms/sync` para indexar.
+
+Veja a [documentação completa do servidor](https://github.com/eliasrosa/roms-manager-server#readme).
 
 ### Configuração no Switch
 
@@ -61,42 +60,26 @@ Edite `sdmc:/switch/roms-manager-ns/config.json`:
     "roms": {
       "remote": "/roms",
       "local": "sdmc:/roms/"
-    },
-    "covers": {
-      "remote": "/covers",
-      "local": "sdmc:/roms/covers/"
     }
   },
   "filters": {
-    "extensions": [".nsp", ".xci", ".nro"],
+    "extensions": [".nsp", ".xci", ".nro", ".nes", ".snes", ".gba"],
     "max_file_size_mb": 0
   }
 }
 ```
 
-### Uso
-
-1. Inicie o servidor no PC: `python3 server/serve.py`
-2. No Switch, abra **ROMs Manager NS**
-3. Vá na tab **Sync**
-4. Clique em **Testar Conexao** para verificar
-5. Clique em **Iniciar Sync** para baixar arquivos novos
-
-### Como funciona
+### Fluxo de sync
 
 ```
-PC (servidor)                    Switch (cliente)
-─────────────                    ────────────────
-python3 serve.py        ←WiFi→   ROMs Manager NS
-  ├─ /manifest.json              1. GET /manifest.json
-  ├─ /roms/*.nsp                 2. Compara com arquivos locais
-  ├─ /covers/*.jpg               3. Baixa o que falta
-  └─ /health                     4. Salva em sdmc:/roms/
+PC/NAS (servidor)                Switch (cliente)
+─────────────────                ────────────────
+Node.js + MongoDB       ←WiFi→   ROMs Manager NS
+  ├─ GET /health                  1. Testa conexão
+  ├─ GET /roms?platform=gba       2. Lista ROMs disponíveis
+  ├─ GET /roms/:platform/:file    3. Baixa o que falta
+  └─ POST /roms/sync              (admin: re-indexar)
 ```
-
-- Apenas baixa arquivos **novos ou modificados** (compara tamanho)
-- Respeita filtros de extensão e tamanho máximo
-- Não deleta arquivos locais por padrão (`delete_removed: false`)
 
 ---
 
@@ -106,10 +89,7 @@ python3 serve.py        ←WiFi→   ROMs Manager NS
 
 ```bash
 # Instalar dependências (uma vez)
-sudo apt install build-essential meson ninja-build pkg-config libglfw3-dev libglm-dev
-
-# Setup inicial
-./setup.sh
+sudo apt install build-essential cmake pkg-config libglfw3-dev libglm-dev
 
 # Compilar e rodar
 make pc
@@ -121,17 +101,28 @@ make pc
 make build
 ```
 
-Output: `roms-manager-ns.nro`
+### Deploy/Install no Switch
+
+```bash
+make deploy      # envia via nxlink (modo dev)
+make install     # copia via FTP (permanente)
+```
 
 ### Todos os targets
 
 ```bash
-make pc        # compila e roda no PC
-make pc-build  # só compila PC
-make build     # gera .nro via Docker
-make clean-pc  # limpa build PC
-make clean-all # limpa tudo
+make pc          # compila e roda no PC
+make pc-build    # só compila PC
+make watch       # hot reload (recompila ao salvar)
+make serve       # inicia servidor (requer ../roms-manager-server)
+make build       # gera .nro via Docker
+make deploy      # envia via nxlink
+make install     # copia via FTP
+make clean-pc    # limpa build PC
+make clean-all   # limpa tudo
 ```
+
+---
 
 ## Instalação no Switch
 
@@ -141,31 +132,31 @@ make clean-all # limpa tudo
 4. No Switch com CFW (Atmosphère), abra o **hbmenu**
 5. Selecione **ROMs Manager NS**
 
+---
+
 ## Estrutura do Projeto
 
 ```
 roms-manager-ns/
 ├── src/
 │   ├── main.cpp                    # Entry point
-│   ├── main_activity.hpp           # Activity principal
+│   ├── main_activity.cpp/hpp       # Activity principal (header, storage info)
 │   ├── platform.hpp                # Abstração Switch/PC
 │   ├── views/
 │   │   ├── file_browser_tab.*      # Navegador de arquivos
 │   │   └── sync_tab.*              # Tab de sincronização
 │   └── sync/
 │       ├── config.*                # Parser de config.json
-│       ├── http_client.*           # HTTP GET via sockets BSD
+│       ├── http_client.*           # HTTP GET/Download via sockets BSD
 │       └── sync_manager.*          # Orquestrador de sync
-├── server/
-│   └── serve.py                    # Servidor HTTP + manifest
 ├── resources/
 │   └── xml/activity/main.xml       # Layout da UI
+├── library/                        # Submodule: Borealis (fork)
 ├── config.json                     # Configuração padrão
 ├── Makefile                        # Build Switch + PC
-├── meson.build                     # Build PC (meson/ninja)
+├── CMakeLists.txt                  # Build PC (cmake)
 ├── Dockerfile                      # Build Switch via Docker
 ├── build.sh                        # Script build Docker
-├── build-pc.sh                     # Script build PC
 └── test_sd/                        # SD card fake (testes PC)
 ```
 
@@ -174,27 +165,28 @@ roms-manager-ns/
 | Componente | Tecnologia |
 |-----------|-----------|
 | Linguagem | C++17 |
-| UI | Borealis (natinusala) |
-| GPU | deko3d / nanovg |
+| UI | [Borealis](https://github.com/eliasrosa/borealis) (fork xfangfang) |
+| GPU | deko3d (Switch) / OpenGL+GLFW (PC) |
 | Rede | Sockets BSD (sem libcurl) |
 | SDK | devkitPro / libnx |
-| Build | Make + meson + Docker |
-| Servidor | Python 3 (stdlib) |
+| Build | Make + CMake + Docker |
+| Servidor | [roms-manager-server](https://github.com/eliasrosa/roms-manager-server) (Node.js + MongoDB) |
 | Target | Nintendo Switch (Atmosphère) |
 
 ## Roadmap
 
 - [x] Navegador de arquivos com UI nativa
-- [x] Sync HTTP via WiFi
+- [x] Sync HTTP via WiFi (manifest)
 - [x] Configuração via JSON
-- [x] Servidor Python standalone
-- [ ] Verificação MD5 pós-download
-- [ ] Sync em thread separada (não bloquear UI)
-- [ ] Progress bar visual
-- [ ] Filtro por extensão na lista de arquivos
-- [ ] Copiar/mover ROMs entre pastas
+- [x] Header com storage info (SD + System)
+- [x] Indicador WiFi com spinner async
+- [x] Servidor Node.js + MongoDB (repo separado)
+- [x] Deploy automático no ZimaOS via GitHub Actions
+- [ ] Migrar sync para usar novos endpoints (`GET /roms`)
+- [ ] Verificação CRC32 pós-download
+- [ ] Progress bar visual durante sync
+- [ ] Filtro por plataforma/extensão na UI
 - [ ] Scan de metadados (titleID, nome do jogo)
-- [ ] Temas customizáveis
 
 ## Licença
 

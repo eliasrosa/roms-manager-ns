@@ -36,14 +36,15 @@ watch:
 	@./watch.sh
 
 serve:
-	@SERVER_PATH="../roms-manager-server/serve.py"; \
-	if [ ! -f "$$SERVER_PATH" ]; then \
+	@SERVER_PATH="../roms-manager-server"; \
+	if [ ! -f "$$SERVER_PATH/docker-compose.yml" ]; then \
 		echo "[erro] Servidor não encontrado em: $$SERVER_PATH"; \
 		echo "       Clone o repositório primeiro:"; \
 		echo "       git clone https://github.com/eliasrosa/roms-manager-server ../roms-manager-server"; \
 		exit 1; \
 	fi; \
-	python3 "$$SERVER_PATH" --dir ./data
+	cd "$$SERVER_PATH" && docker compose up -d --build && \
+	echo "Servidor rodando em http://localhost:8080"
 
 deploy:
 	@echo "=== Deploy via nxlink ==="

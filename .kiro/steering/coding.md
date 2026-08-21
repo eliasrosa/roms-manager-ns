@@ -34,19 +34,22 @@
 - Timeout de 10s em operações de socket
 - Verificar `path.empty()` antes de abrir diretórios/URLs
 - Log warnings via `brls::Logger::warning()`
+- **Operações de rede devem rodar em `std::thread`** + `brls::sync()` para callback na UI thread
+- Nunca bloquear a UI thread com httpGet/httpDownloadFile
 
 ## Platform
 
 - Nunca usar `sdmc:/` direto no código
 - Sempre usar `platform::sdRoot()` ou `platform::romsPath()`
-- Usar `#ifdef __SWITCH__` apenas em main.cpp e platform.hpp
+- Usar `#ifdef __SWITCH__` apenas em main.cpp, platform.hpp e main_activity.cpp
 - **Configs editáveis pelo usuário NUNCA no romfs**. Ler do SD card (`sdmc:/switch/<app>/config.json`) com fallback para defaults hardcoded no código. Romfs é read-only e exige rebuild para alterar.
+- **nsInitialize/nsExit**: centralizar chamada no `onContentAvailable()` da MainActivity, não dentro de cada função de platform
 
 ## Git
 
 - Mensagens de commit em pt-BR com prefixo convencional
 - Branch de dev separada, nunca push direto na main
-- Não commitar: build/, build-pc/, build.nx/, *.nro, test_sd/, server/data/
+- Não commitar: build/, build-pc/, build.nx/, *.nro, test_sd/
 
 ## Debugging e Reprodução
 
