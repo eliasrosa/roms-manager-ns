@@ -23,6 +23,11 @@ resources/xml/views/captioned_image.xml
 # Test data
 test_sd/
 
+# Logs baixados do Switch (make logs)
+.logs/
+debug.log
+debug.log.1
+
 # Kiro specs (locais)
 .kiro/specs/
 

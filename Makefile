@@ -11,7 +11,17 @@ ifneq ($(MAKELEVEL),1)
 SWITCH_IP ?= 192.168.0.150
 SWITCH_FTP_PORT ?= 5000
 
-.PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh install install-fresh
+# IP desta máquina na rede — usado pelo modo debug para o Switch saber para
+# onde mandar os logs em tempo real. Detectado automaticamente.
+HOST_IP ?= $(shell ip route get 1 2>/dev/null | awk '{print $$7; exit}')
+
+# Porta que o app usa para enviar logs (NXLINK_CLIENT_PORT do libnx)
+NXLINK_LOG_PORT ?= 28771
+
+APP_DIR := /switch/roms-manager-ns
+
+.PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh \
+        install install-fresh install-debug logs logs-live logs-clean
 
 pc-setup:
 	@if [ ! -d "build-pc" ]; then \
@@ -83,6 +93,76 @@ install:
 	@echo "Instalado em sdmc:/switch/roms-manager-ns/"
 
 install-fresh: build install
+
+# Instala via FTP com o modo debug ligado: grava log em arquivo no SD e manda
+# os logs em tempo real para esta máquina.
+#
+# Necessário porque o nxlink só entrega logs quando ele mesmo lança o app — ao
+# instalar por FTP e abrir pelo hbmenu, o app precisa saber o IP do host.
+install-debug:
+	@if [ ! -f "roms-manager-ns.nro" ]; then \
+		echo "[erro] roms-manager-ns.nro nao encontrado. Rode 'make build' primeiro."; \
+		exit 1; \
+	fi
+	@if [ -z "$(HOST_IP)" ]; then \
+		echo "[erro] Nao foi possivel detectar o IP local."; \
+		echo "       Informe manualmente: make install-debug HOST_IP=192.168.0.4"; \
+		exit 1; \
+	fi
+	@echo "=== Instalando no Switch em modo DEBUG ==="
+	@echo "Switch:  $(SWITCH_IP)"
+	@echo "Host:    $(HOST_IP) (recebe os logs na porta $(NXLINK_LOG_PORT))"
+	@echo ""
+	@echo "[1/3] Gerando config com debug habilitado..."
+	@sed -e 's/"log_to_file": false/"log_to_file": true/' \
+	     -e 's/"nxlink_host": ""/"nxlink_host": "$(HOST_IP)"/' \
+	     config.json > /tmp/rmns-config-debug.json
+	@echo "[2/3] Enviando .nro..."
+	@curl -s --ftp-create-dirs -T roms-manager-ns.nro \
+		ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)$(APP_DIR)/roms-manager-ns.nro
+	@echo "[3/3] Enviando config.json (debug on)..."
+	@curl -s -T /tmp/rmns-config-debug.json \
+		ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)$(APP_DIR)/config.json
+	@rm -f /tmp/rmns-config-debug.json
+	@echo ""
+	@echo "Pronto. Agora:"
+	@echo "  1. rode 'make logs-live' aqui"
+	@echo "  2. abra o app no hbmenu do Switch"
+	@echo "  3. depois use 'make logs' para baixar o arquivo completo"
+
+# Escuta os logs em tempo real enviados pelo app (modo debug).
+# -k mantem o listener ativo entre execucoes do app.
+logs-live:
+	@echo "=== Logs em tempo real ==="
+	@echo "Escutando em $(HOST_IP):$(NXLINK_LOG_PORT) — Ctrl+C para sair"
+	@echo "O app precisa ter debug.nxlink_host = $(HOST_IP) no config.json"
+	@echo ""
+	@nc -lk $(NXLINK_LOG_PORT)
+
+# Baixa o arquivo de log do SD card. Funciona mesmo se o app morreu, e o .1 e a
+# sessao anterior (util quando o app crasha e voce reabre para investigar).
+logs:
+	@mkdir -p .logs
+	@echo "Baixando logs de $(SWITCH_IP)$(APP_DIR)/ ..."
+	@if curl -s -f -o .logs/debug.log \
+		ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)$(APP_DIR)/debug.log; then \
+		echo "  -> .logs/debug.log"; \
+	else \
+		echo "[erro] debug.log nao encontrado no Switch."; \
+		echo "       Verifique se debug.log_to_file esta true no config.json"; \
+		echo "       (use 'make install-debug' para configurar automaticamente)"; \
+		exit 1; \
+	fi
+	@if curl -s -f -o .logs/debug.log.1 \
+		ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)$(APP_DIR)/debug.log.1 2>/dev/null; then \
+		echo "  -> .logs/debug.log.1 (sessao anterior)"; \
+	fi
+	@echo ""
+	@cat .logs/debug.log
+
+logs-clean:
+	@rm -rf .logs
+	@echo "Logs locais removidos"
 
 build:
 	@./build.sh

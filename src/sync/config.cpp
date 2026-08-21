@@ -229,6 +229,15 @@ AppConfig loadConfig(const std::string& path)
         if (!excludes.empty()) config.filters.exclude_patterns = excludes;
     }
 
+    // Parse debug
+    std::string debugJson = extractObject(json, "debug");
+    if (!debugJson.empty())
+    {
+        config.debug.log_to_file = extractBool(debugJson, "log_to_file", false);
+        config.debug.log_path    = extractString(debugJson, "log_path");
+        config.debug.nxlink_host = extractString(debugJson, "nxlink_host");
+    }
+
     return config;
 }
 
@@ -282,6 +291,12 @@ bool saveConfig(const AppConfig& config, const std::string& path)
         if (i < config.filters.exclude_patterns.size() - 1) file << ", ";
     }
     file << "]\n";
+    file << "  },\n";
+
+    file << "  \"debug\": {\n";
+    file << "    \"log_to_file\": " << (config.debug.log_to_file ? "true" : "false") << ",\n";
+    file << "    \"log_path\": \"" << config.debug.log_path << "\",\n";
+    file << "    \"nxlink_host\": \"" << config.debug.nxlink_host << "\"\n";
     file << "  }\n";
     file << "}\n";
 

@@ -44,12 +44,28 @@ struct FilterConfig
     std::vector<std::string> exclude_patterns = {"._*", ".DS_Store", "Thumbs.db"};
 };
 
+struct DebugConfig
+{
+    // Grava os logs em arquivo no SD card (sobrevive a crash do app)
+    bool log_to_file = false;
+
+    // Path do arquivo de log. Vazio = default da plataforma.
+    std::string log_path = "";
+
+    // IP do PC que vai receber os logs em tempo real na porta 28771.
+    // Necessário apenas quando o app NÃO é lançado pelo nxlink (ex: instalado
+    // via FTP e aberto pelo hbmenu), pois nesse caso o loader não preenche
+    // __nxlink_host. Vazio = desabilitado.
+    std::string nxlink_host = "";
+};
+
 struct AppConfig
 {
     ServerConfig server;
     SyncConfig sync;
     std::vector<PathMapping> paths;
     FilterConfig filters;
+    DebugConfig debug;
 };
 
 /**

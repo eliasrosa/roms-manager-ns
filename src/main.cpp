@@ -25,6 +25,8 @@
 #include "views/sync_tab.hpp"
 #include "views/settings_tab.hpp"
 #include "platform.hpp"
+#include "debug_log.hpp"
+#include "sync/config.hpp"
 
 /**
  * Handler de std::terminate — captura exceções não tratadas.
@@ -35,8 +37,17 @@
  */
 static void onTerminate()
 {
-    printf("\n[FATAL] std::terminate chamado (excecao nao capturada)\n");
-    fflush(stdout);
+    // Escreve nos dois canais: stdout (nxlink) e arquivo de log. O arquivo é o
+    // que sobrevive quando não há nxlink conectado — que é justamente o caso em
+    // que este handler é mais necessário.
+    auto report = [](const char* line) {
+        printf("%s\n", line);
+        fflush(stdout);
+        dbg::writeRaw(line);
+    };
+
+    report("");
+    report("[FATAL] std::terminate chamado (excecao nao capturada)");
 
     if (std::exception_ptr ex = std::current_exception())
     {
@@ -46,19 +57,21 @@ static void onTerminate()
         }
         catch (const std::exception& e)
         {
-            printf("[FATAL] tipo: std::exception | what(): %s\n", e.what());
+            char buf[512];
+            snprintf(buf, sizeof(buf),
+                     "[FATAL] tipo: std::exception | what(): %s", e.what());
+            report(buf);
         }
         catch (...)
         {
-            printf("[FATAL] excecao de tipo desconhecido (nao derivada de std::exception)\n");
+            report("[FATAL] excecao de tipo desconhecido (nao derivada de std::exception)");
         }
     }
     else
     {
-        printf("[FATAL] sem exception ativa (terminate direto)\n");
+        report("[FATAL] sem exception ativa (terminate direto)");
     }
 
-    fflush(stdout);
     // Dar tempo do socket do nxlink drenar antes de abortar
     sleep(2);
     abort();
@@ -76,6 +89,14 @@ int main(int argc, char* argv[])
 
     // Log level
     brls::Logger::setLogLevel(brls::LogLevel::LOG_DEBUG);
+
+    // Canais de debug (arquivo no SD / nxlink em tempo real) antes de qualquer
+    // outra coisa, para capturar também os logs de inicialização do Borealis.
+    {
+        auto cfg = netsync::loadConfig(netsync::getConfigPath());
+        dbg::init(cfg.debug);
+        brls::Logger::info("boot: servidor configurado {}", cfg.server.baseUrl());
+    }
 
     printf("[main] Inicializando Borealis...\n");
 
@@ -117,6 +138,8 @@ int main(int argc, char* argv[])
         ;
 
     printf("[main] App encerrado\n");
+
+    dbg::shutdown();
 
     return EXIT_SUCCESS;
 }

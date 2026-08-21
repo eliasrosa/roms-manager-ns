@@ -26,6 +26,7 @@ add_subdirectory(library/library)
 set(APP_SOURCES
     src/main.cpp
     src/main_activity.cpp
+    src/debug_log.cpp
     src/views/file_browser_tab.cpp
     src/views/sync_tab.cpp
     src/views/settings_tab.cpp
