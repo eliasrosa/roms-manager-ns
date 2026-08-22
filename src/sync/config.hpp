@@ -32,7 +32,13 @@ struct SyncConfig
 {
     bool auto_sync = false;
     int check_interval_minutes = 30;
+
+    // ⚠️ NÃO IMPLEMENTADO. Hoje shouldDownload() compara apenas existência e
+    // tamanho do arquivo (ver TODO em sync_manager.cpp). O campo é lido e
+    // ignorado — não assuma verificação de integridade por causa dele.
+    // A migração para GET /roms trará CRC32, que substitui esta ideia.
     bool verify_hash = true;
+
     bool delete_removed = false;
     int max_concurrent_downloads = 2;
 };

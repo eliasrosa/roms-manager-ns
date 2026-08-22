@@ -170,11 +170,17 @@ AppConfig loadConfig(const std::string& path)
     std::string serverJson = extractObject(json, "server");
     if (!serverJson.empty())
     {
-        config.server.host = extractString(serverJson, "host");
-        config.server.port = extractInt(serverJson, "port", 8080);
-        config.server.protocol = extractString(serverJson, "protocol");
-        if (config.server.protocol.empty()) config.server.protocol = "http";
-        if (config.server.host.empty()) config.server.host = "192.168.1.100";
+        // Só sobrescreve quando o campo veio preenchido, preservando os defaults
+        // declarados em ServerConfig. Antes o host era atribuído direto e, se
+        // viesse vazio, caía num hardcode de outra sub-rede (192.168.1.100),
+        // divergindo do default real (192.168.0.100).
+        std::string host = extractString(serverJson, "host");
+        if (!host.empty()) config.server.host = host;
+
+        std::string protocol = extractString(serverJson, "protocol");
+        if (!protocol.empty()) config.server.protocol = protocol;
+
+        config.server.port = extractInt(serverJson, "port", config.server.port);
     }
 
     // Parse sync

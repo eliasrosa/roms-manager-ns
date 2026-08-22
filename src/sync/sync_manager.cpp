@@ -235,7 +235,13 @@ std::vector<RemoteFile> SyncManager::fetchManifest()
     HttpResponse resp = httpGet(url);
     if (!resp.ok())
     {
-        brls::Logger::error("Falha ao buscar manifest: {}", resp.error);
+        // Quando o servidor responde (ex: 404), o HTTP teve sucesso e 'error'
+        // fica vazio — logar só ele produzia "Falha ao buscar manifest:" sem
+        // nenhuma pista. Cair para o status code nesse caso.
+        std::string reason = resp.error.empty()
+            ? "HTTP " + std::to_string(resp.status_code)
+            : resp.error;
+        brls::Logger::error("Falha ao buscar manifest: {}", reason);
         return {};
     }
 
