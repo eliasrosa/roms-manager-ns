@@ -111,16 +111,31 @@ make install     # copia via FTP (permanente)
 ### Todos os targets
 
 ```bash
-make pc          # compila e roda no PC
-make pc-build    # só compila PC
-make watch       # hot reload (recompila ao salvar)
-make serve       # inicia servidor (requer ../roms-manager-server)
-make build       # gera .nro via Docker
-make deploy      # envia via nxlink
-make install     # copia via FTP
-make clean-pc    # limpa build PC
-make clean-all   # limpa tudo
+make pc            # compila e roda no PC
+make pc-build      # só compila PC
+make watch         # hot reload (recompila ao salvar)
+make serve         # inicia servidor (requer ../roms-manager-server)
+make build         # gera .nro via Docker
+make deploy        # envia via nxlink (temporário)
+make install       # copia via FTP (permanente)
+make deploy-fresh  # build + deploy
+make install-fresh # build + install
+make clean-pc      # limpa build PC
 ```
+
+### Debug
+
+Para capturar logs do app rodando no console:
+
+```bash
+make install-debug # instala via FTP com logs habilitados
+make logs-live     # acompanha os logs em tempo real
+make logs          # baixa o log do SD card (funciona mesmo após crash)
+make logs-clean    # remove os logs locais
+```
+
+`make install-debug` detecta o IP desta máquina automaticamente. Se a detecção
+falhar, informe: `make install-debug HOST_IP=192.168.0.4`
 
 ---
 
