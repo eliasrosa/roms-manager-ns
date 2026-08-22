@@ -21,7 +21,7 @@ NXLINK_LOG_PORT ?= 28771
 APP_DIR := /switch/roms-manager-ns
 
 .PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh \
-        install install-fresh install-debug logs logs-live logs-clean
+        install install-fresh install-debug logs logs-live logs-clean demo
 
 pc-setup:
 	@if [ ! -d "build-pc" ]; then \
@@ -41,6 +41,23 @@ pc-build: pc-setup
 clean-pc:
 	@echo Limpando build PC...
 	@rm -fr build-pc
+
+# Compila e abre o app demo do Borealis com galeria de todos os componentes
+# disponiveis (buttons, cells, slider, images, recycler, etc).
+# Util para descobrir o que a lib oferece antes de criar uma view nova.
+demo:
+	@if [ ! -d "library/build-demo" ]; then \
+		echo "[1/2] Configurando demo..."; \
+		cmake -B library/build-demo -S library \
+			-DCMAKE_BUILD_TYPE=Release \
+			-DPLATFORM_DESKTOP=ON \
+			-DGLFW_BUILD_WAYLAND=OFF; \
+	fi
+	@echo "[2/2] Compilando demo..."
+	@cmake --build library/build-demo -j$$(nproc)
+	@echo ""
+	@echo "Abrindo galeria de componentes do Borealis..."
+	@cd library && ./build-demo/borealis_demo
 
 watch:
 	@./watch.sh
