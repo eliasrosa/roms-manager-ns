@@ -30,7 +30,7 @@ Ao mexer no submodule: commitar e dar push no fork **antes** de rodar `make buil
 
 ## Os patches
 
-Diff contra `upstream/wiliwili`: 3 arquivos, 3 commits.
+Diff contra `upstream/wiliwili`: **2 arquivos** em vigor.
 
 ### `9f467c44` — fflush incondicional no Logger
 `library/include/borealis/core/logger.hpp`
@@ -44,36 +44,28 @@ patch, 36 depois.
 
 **Manter.** É a base do modo debug.
 
-### `14aaaa3e` — `extern "C"` em `setIgnoreExitRequest`
-Corrige name mangling do símbolo introduzido no commit abaixo.
-
-### `30e64f8e` — patches iniciais
-Dois patches não relacionados no mesmo commit:
-
-**1. `switch_platform.cpp` — `ignoreExitRequest`**
-
-Adiciona `static bool ignoreExitRequest = true` e `setIgnoreExitRequest(bool)`;
-o hook `AppletHookType_OnExitRequest` só chama `Application::quit()` se a flag
-for falsa.
-
-⚠️ **Nada em `src/` chama `setIgnoreExitRequest(false)`.** A flag nasce `true` e
-nunca é liberada, então no Switch o `OnExitRequest` fica **permanentemente
-ignorado** — o app não responde a pedidos do OS para encerrar.
-
-O quit pelo botão + continua funcionando porque vem de outro caminho
-(`Activity::registerExitAction` / dialog do `AppletFrame`), não desse hook.
-
-Esse patch foi criado para investigar o app fechando sozinho no startup, mas a
-causa real era outra (`std::thread` lançando `ENOSYS`). Ficou como resíduo:
-**candidato a reverter.**
-
-**2. `desktop_platform.cpp` — bateria/wifi forçados**
+### `30e64f8e` — bateria/wifi forçados no desktop
+`library/lib/platforms/desktop/desktop_platform.cpp`
 
 `canShowBatteryLevel()` e `canShowWirelessLevel()` retornam `true` no ramo Linux
 em vez de `false`, com comentário `// forçado para debug visual`.
 
-Patch de conveniência para ver os indicadores do header no PC. Não afeta o
+Conveniência para ver os indicadores do header ao rodar no PC. Não afeta o
 Switch. **Candidato a virar flag de build** em vez de patch no fork.
+
+### Revertido — `ignoreExitRequest` (`ab18b2ca`)
+
+Houve um patch que adicionava `setIgnoreExitRequest()` para ignorar o
+`AppletHookType_OnExitRequest`. Foi **revertido**: a flag nascia `true` e nada em
+`src/` a liberava, então o `OnExitRequest` ficava permanentemente ignorado e o app
+não respondia a pedido do OS para encerrar.
+
+Tinha sido criado para investigar o app fechando sozinho no startup, mas a causa
+real era o `std::thread` lançando `ENOSYS`. O quit pelo botão + nunca dependeu
+desse hook — vem de `Activity::registerExitAction` / dialog do `AppletFrame`.
+
+Registrado aqui porque a ideia parece atraente ao reencontrar o sintoma: **não
+reintroduzir sem antes descartar exceção não capturada** (ver `debug.md`).
 
 ## Atualizar a partir do upstream
 
@@ -85,6 +77,6 @@ git push --force-with-lease
 cd .. && git add library && git commit
 ```
 
-Depois do rebase, conferir que os 3 patches sobreviveram — especialmente o
+Depois do rebase, conferir que os patches sobreviveram — especialmente o
 `fflush`, cuja ausência não quebra o build, só faz o log desaparecer
 silenciosamente.
