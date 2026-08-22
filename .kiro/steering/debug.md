@@ -40,6 +40,12 @@ make logs-clean      # remove os logs locais
 `make install-debug` gera o config patchado com `sed` em `/tmp` e envia por FTP;
 não altera o `config.json` do repo.
 
+Durante debug iterativo (recompilar e reenviar várias vezes), usar **`make deploy`**
+em vez de montar o `docker run ... nxlink` na mão — o target já monta o comando
+Docker correto (o `nxlink` não está instalado no host) e faz o `pkill` de
+instâncias presas. A única parte manual inevitável é abrir o hbmenu em modo
+nxlink (tecla Y) a cada execução; o app encerra ao sair, então isso se repete.
+
 ## Por que existem dois canais
 
 **nxlink** só entrega log quando **ele mesmo** lança o app, porque é o loader que

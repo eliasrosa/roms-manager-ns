@@ -21,7 +21,8 @@ NXLINK_LOG_PORT ?= 28771
 APP_DIR := /switch/roms-manager-ns
 
 .PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh \
-        install install-fresh install-debug logs logs-live logs-clean demo
+        install install-fresh install-debug logs logs-live logs-clean \
+        demo demo-switch
 
 pc-setup:
 	@if [ ! -d "build-pc" ]; then \
@@ -58,6 +59,22 @@ demo:
 	@echo ""
 	@echo "Abrindo galeria de componentes do Borealis..."
 	@cd library && ./build-demo/borealis_demo
+
+# Mesma galeria de componentes, mas gerando o .nro e enviando pro Switch.
+# Usa Dockerfile.demo (cross-compile do demo do Borealis) e instala num path
+# proprio para nao se misturar com o app.
+demo-switch:
+	@echo "[1/3] Build do demo para Switch..."
+	@docker build -f Dockerfile.demo -t borealis-demo .
+	@echo "[2/3] Extraindo .nro..."
+	@docker run --rm --user $$(id -u):$$(id -g) -v "$(CURDIR):/output" \
+		--entrypoint "" borealis-demo cp /app/build/borealis_demo.nro /output/borealis-demo.nro
+	@echo "[3/3] Enviando via nxlink (abra o hbmenu em modo nxlink, tecla Y)..."
+	@pkill -f '[n]xlink' 2>/dev/null || true
+	@docker run --rm --network host \
+		-v $(CURDIR)/borealis-demo.nro:/app/borealis-demo.nro \
+		devkitpro/devkita64 \
+		nxlink -a $(SWITCH_IP) -p /switch/borealis-demo/borealis-demo.nro -s /app/borealis-demo.nro
 
 watch:
 	@./watch.sh

@@ -1,0 +1,53 @@
+# Build do app demo do Borealis para Nintendo Switch
+# Mostra a galeria completa de componentes da lib
+FROM devkitpro/devkita64:latest
+
+RUN apt-get update && apt-get install -y cmake build-essential && apt-get clean
+
+ENV PATH="/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:${PATH}"
+
+# Pacotes Switch
+RUN for i in 1 2 3; do \
+        dkp-pacman -Syy --noconfirm && break || sleep 5; \
+    done; \
+    dkp-pacman -S --noconfirm --needed \
+        switch-glfw \
+        switch-mesa \
+        switch-glm \
+        deko3d \
+    && dkp-pacman -Scc --noconfirm
+
+WORKDIR /app
+
+# Copiar só o submodule do borealis e nosso toolchain
+COPY library/ library/
+COPY cmake/SwitchToolchain.cmake cmake/SwitchToolchain.cmake
+
+# Compilar shaders do demo (mesmos do nanovg/deko3d)
+RUN mkdir -p library/resources/shaders && \
+    uam -s vert -o library/resources/shaders/fill_vsh.dksh \
+        library/library/lib/extern/nanovg/deko3d/shaders/fill_vsh.glsl && \
+    uam -s frag -o library/resources/shaders/fill_fsh.dksh \
+        library/library/lib/extern/nanovg/deko3d/shaders/fill_fsh.glsl && \
+    uam -s frag -o library/resources/shaders/fill_aa_fsh.dksh \
+        library/library/lib/extern/nanovg/deko3d/shaders/fill_aa_fsh.glsl && \
+    echo "Shaders compilados"
+
+# CMake configure
+RUN cmake -B build \
+    -DCMAKE_TOOLCHAIN_FILE=/app/cmake/SwitchToolchain.cmake \
+    -DCMAKE_MAKE_PROGRAM=make \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DPLATFORM_SWITCH=ON \
+    -DUSE_DEKO3D=ON \
+    -S library
+
+# CMake build
+RUN cmake --build build -j$(nproc)
+
+# Gerar .nro
+RUN aarch64-none-elf-strip -s build/borealis_demo -o build/borealis_demo.stripped && \
+    nacptool --create "Borealis Demo" "xfangfang" "1.0.0" build/borealis_demo.nacp && \
+    elf2nro build/borealis_demo.stripped build/borealis_demo.nro \
+        --nacp=build/borealis_demo.nacp \
+        --romfsdir=library/resources

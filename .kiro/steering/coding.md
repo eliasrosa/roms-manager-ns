@@ -105,6 +105,19 @@ Dois pontos que valem repetir aqui, porque já custaram horas:
   compilando o módulo isolado. Mas lembrar que glibc esconde bugs que o newlib
   expõe (`strerror` retornando NULL, `std::thread` funcionando).
 
+## Docker — artefatos com owner root
+
+Todo build passa por `docker run -v`, e os arquivos que o container cria no
+volume montado ficam com **owner root**. O usuário do host não consegue apagá-los
+direto.
+
+- Ao extrair um artefato, monte o container com o usuário do host:
+  `docker run --rm --user $(id -u):$(id -g) -v "$PWD:/out" <img> cp ... /out/`
+- Para limpar algo que já ficou root, use um container descartável em vez de
+  sudo: `docker run --rm -v "$PWD:/w" alpine rm -rf /w/<path>`
+- **Nunca** usar `sudo rm` — no host o sudo pede senha interativa e trava a
+  sessão do agente.
+
 ## nxlink (deploy para Switch)
 
 - `nxlink` envia o `.nro` para o Switch e executa imediatamente (modo dev)
