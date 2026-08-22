@@ -20,7 +20,11 @@ if [ ! -d "$BOREALIS_RES" ]; then
 fi
 
 # Copiar cada pasta de recursos do borealis (sem sobrescrever nossos XMLs)
-for dir in i18n img inter material; do
+#
+# 'font' é obrigatório: sem switch_font.ttf e switch_icons.ttf nenhum texto
+# renderiza no PC. Antes ficava de fora e a cópia era manual.
+# 'inter' saiu da lista — não existe mais no Borealis e só gerava aviso falso.
+for dir in font i18n img material; do
     src="$BOREALIS_RES/$dir"
     dest="$APP_RES/$dir"
 

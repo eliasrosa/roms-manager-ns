@@ -1,47 +1,58 @@
 #!/bin/bash
-# Setup inicial do projeto ROM Manager NS
-# Inicializa submodules e verifica dependências
+# Setup inicial do projeto ROMs Manager NS
+# Inicializa o submodule, copia os resources e verifica as dependências
 
 set -e
 
 echo "=== ROMs Manager NS - Setup ==="
 echo ""
 
-# Inicializar submodules
-echo "[1/3] Inicializando submodules..."
+# Submodule do Borealis
+echo "[1/4] Inicializando submodule..."
 git submodule update --init --recursive
 
-# Verificar se borealis está presente
-if [ -f "library/library/borealis.mk" ]; then
+# Sanidade: conferir o CMakeLists do Borealis, que é o build real.
+# (Antes esta verificação procurava borealis.mk, que não existe na branch
+#  wiliwili do fork — o script falhava sempre neste ponto.)
+if [ -f "library/library/CMakeLists.txt" ]; then
     echo "      ✓ Borealis encontrado"
 else
-    echo "      ✗ ERRO: borealis.mk não encontrado em library/library/"
-    echo "        Verifique se o submodule foi clonado corretamente."
+    echo "      ✗ ERRO: library/library/CMakeLists.txt não encontrado"
+    echo "        O submodule não foi clonado corretamente."
     exit 1
 fi
 
-# Verificar Docker
-echo "[2/3] Verificando Docker..."
+# Resources (fontes, i18n, ícones). Sem isso nenhum texto renderiza no PC.
+echo "[2/4] Copiando resources do Borealis..."
+./setup-resources.sh > /dev/null
+echo "      ✓ resources/font, i18n, img, material"
+
+# Docker — caminho padrão para gerar o .nro
+echo "[3/4] Verificando Docker..."
 if command -v docker &> /dev/null; then
     echo "      ✓ Docker disponível ($(docker --version | cut -d' ' -f3 | tr -d ','))"
 else
-    echo "      ⚠ Docker não encontrado. Instale para usar ./build.sh"
-    echo "        Alternativamente, instale devkitPro localmente."
+    echo "      ⚠ Docker não encontrado. É o caminho padrão para 'make build'."
 fi
 
-# Verificar devkitPro (opcional)
-echo "[3/3] Verificando devkitPro..."
-if [ -n "$DEVKITPRO" ] && [ -d "$DEVKITPRO" ]; then
-    echo "      ✓ devkitPro encontrado em $DEVKITPRO"
+# Dependências do build PC
+echo "[4/4] Verificando dependências do build PC..."
+missing=""
+command -v cmake &> /dev/null || missing="$missing cmake"
+command -v pkg-config &> /dev/null || missing="$missing pkg-config"
+
+if [ -z "$missing" ]; then
+    echo "      ✓ cmake e pkg-config disponíveis"
 else
-    echo "      ⚠ devkitPro não configurado (ok se usar Docker)"
+    echo "      ⚠ Faltando:$missing"
+    echo "        Ubuntu/Debian: sudo apt install build-essential cmake pkg-config libglfw3-dev libglm-dev"
 fi
 
 echo ""
-echo "=== Setup concluído! ==="
+echo "=== Setup concluído ==="
 echo ""
-echo "Para buildar:"
-echo "  Docker:  ./build.sh"
-echo "  Local:   make -j\$(nproc)"
+echo "  make pc       testa no PC"
+echo "  make build    gera o .nro (Docker)"
+echo "  make install  instala no Switch via FTP"
 echo ""
-echo "Output: roms-manager-ns.nro → sdmc:/switch/roms-manager-ns/"
+echo "Antes de sincronizar, ajuste o IP do servidor em config.json."

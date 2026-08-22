@@ -37,26 +37,20 @@ Build e recursos:
 - `cmake/SwitchToolchain.cmake` — toolchain de cross-compile
 - `Dockerfile` + `build.sh` — build Switch containerizado (`make build`)
 - `watch.sh` — hot reload no PC (`make watch`)
-- `setup-resources.sh` — cria os symlinks de `resources/`
+- `setup.sh` — setup inicial (submodule + resources + checagem de deps)
+- `setup-resources.sh` — copia os assets do Borealis para `resources/`
 - `resources/xml/` — layouts XML do Borealis
 - `library/` — submodule Borealis (**fork com patches**, ver `borealis-fork.md`)
 - `icon.jpg` — ícone do .nro, referenciado pelo `elf2nro`
 
 Não versionado (mas necessário):
 
-- `resources/font`, `i18n`, `img`, `inter`, `material` — gitignorados. Um clone
-  limpo **não** tem esses assets. As fontes (`switch_font.ttf`,
-  `switch_icons.ttf`) precisam ser copiadas à mão de `library/resources/font/`;
-  o `setup-resources.sh` **não** cobre `font/`.
+- `resources/font`, `i18n`, `img`, `material` — gitignorados. Um clone limpo
+  **não** tem esses assets e sem `font/` nenhum texto renderiza. Resolvido por
+  `./setup.sh` (ou `./setup-resources.sh` direto).
 - `config.local.json` — override do config no PC. `getConfigPath()` tenta esse
   arquivo antes do `config.json`. Útil para não sujar o config versionado.
 - `test_sd/` — SD card fake para testes no PC
-
-Resíduos (não usar como referência):
-
-- `source/`, `include/`, `romfs/` — diretórios vazios do template devkitPro
-- `xmake.lua`, `toolchain/`, `.xmake/` — tentativa de build com xmake, abandonada
-- `meson.build` — build PC antigo, hoje é CMake
 
 ## Server — Endpoints (roms-manager-server)
 
