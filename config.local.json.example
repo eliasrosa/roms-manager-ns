@@ -30,5 +30,10 @@
     "extensions": [".nsp", ".xci", ".nro"],
     "max_file_size_mb": 0,
     "exclude_patterns": ["._*", ".DS_Store", "Thumbs.db"]
+  },
+  "debug": {
+    "log_to_file": true,
+    "log_path": "./debug.log",
+    "nxlink_host": ""
   }
 }

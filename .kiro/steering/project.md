@@ -49,7 +49,10 @@ Não versionado (mas necessário):
   **não** tem esses assets e sem `font/` nenhum texto renderiza. Resolvido por
   `./setup.sh` (ou `./setup-resources.sh` direto).
 - `config.local.json` — override do config no PC. `getConfigPath()` tenta esse
-  arquivo antes do `config.json`. Útil para não sujar o config versionado.
+  arquivo antes do `config.json`. **Usar ao rodar no PC**: o `config.json`
+  versionado aponta os paths para `sdmc:/`, e no desktop isso cria um diretório
+  literal chamado `sdmc:` na raiz do repo. Copiar de `config.local.json.example`,
+  que já usa `./test_sd/`.
 - `test_sd/` — SD card fake para testes no PC
 
 ## Server — Endpoints (roms-manager-server)
