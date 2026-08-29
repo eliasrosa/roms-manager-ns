@@ -8,6 +8,7 @@ set -e
 
 BOREALIS_RES="library/resources"
 APP_RES="resources"
+APP_I18N="i18n"
 
 echo "=== Setup de resources ==="
 echo ""
@@ -42,6 +43,22 @@ done
 
 # Garantir que pasta icon existe
 mkdir -p "$APP_RES/icon"
+
+# Traduções mantidas pelo projeto (i18n/), copiadas DEPOIS das do Borealis.
+#
+# O Borealis só traz en-US, fr, ru e zh-Hans. Idiomas adicionais vivem em
+# i18n/ (versionado) porque o loop acima faz 'rm -rf' em resources/i18n e
+# apagaria qualquer coisa colocada lá manualmente.
+if [ -d "$APP_I18N" ]; then
+    echo ""
+    for locale_dir in "$APP_I18N"/*/; do
+        [ -d "$locale_dir" ] || continue
+        locale=$(basename "$locale_dir")
+        mkdir -p "$APP_RES/i18n/$locale"
+        cp -r "$locale_dir." "$APP_RES/i18n/$locale/"
+        echo "  ✓ i18n/$locale (do projeto) mesclado"
+    done
+fi
 
 # Verificar se icon.jpg existe
 if [ ! -f "$APP_RES/icon/icon.jpg" ]; then

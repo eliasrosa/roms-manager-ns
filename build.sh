@@ -16,6 +16,16 @@ if [ ! -f "library/library/borealis.mk" ]; then
     git submodule update --init --recursive
 fi
 
+# Verificar se os resources do Borealis foram copiados.
+#
+# Sem isto o build gera um .nro que compila e roda, mas sem fontes, ícones
+# Material nem imagens de sistema — o RomFS sai só com shaders e XML, e a
+# falha só aparece em runtime como "Cannot find custom font" / "can't fopen".
+if [ ! -f "resources/material/MaterialIcons-Regular.ttf" ]; then
+    echo "[!] Resources do Borealis ausentes em resources/. Configurando..."
+    ./setup-resources.sh
+fi
+
 # Limpar container anterior se existir
 docker rm -f "$CONTAINER_NAME" > /dev/null 2>&1 || true
 
