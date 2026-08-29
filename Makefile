@@ -18,6 +18,13 @@ HOST_IP ?= $(shell ip route get 1 2>/dev/null | awk '{print $$7; exit}')
 # Porta que o app usa para enviar logs (NXLINK_CLIENT_PORT do libnx)
 NXLINK_LOG_PORT ?= 28771
 
+# IP do servidor de sync (roms-manager-server), sobrescrito no envio.
+#
+# Vazio por padrão: o config.json versionado é enviado como está. Informe para
+# apontar o app ao seu servidor sem precisar editar (e arriscar commitar) o
+# config.json — ex.: make install-debug SERVER_IP=<ip-do-servidor>
+SERVER_IP ?=
+
 APP_DIR := /switch/roms-manager-ns
 
 .PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh \
@@ -122,7 +129,13 @@ install:
 	@echo "[2/3] Enviando .nro..."
 	@curl -T roms-manager-ns.nro ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)/switch/roms-manager-ns/roms-manager-ns.nro
 	@echo "[3/3] Enviando config.json..."
-	@curl -T config.json ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)/switch/roms-manager-ns/config.json
+	@if [ -n "$(SERVER_IP)" ]; then \
+		sed 's/"host": "[^"]*"/"host": "$(SERVER_IP)"/' config.json > /tmp/rmns-config.json; \
+		curl -T /tmp/rmns-config.json ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)/switch/roms-manager-ns/config.json; \
+		rm -f /tmp/rmns-config.json; \
+	else \
+		curl -T config.json ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)/switch/roms-manager-ns/config.json; \
+	fi
 	@echo ""
 	@echo "Instalado em sdmc:/switch/roms-manager-ns/"
 
@@ -146,11 +159,15 @@ install-debug:
 	@echo "=== Instalando no Switch em modo DEBUG ==="
 	@echo "Switch:  $(SWITCH_IP)"
 	@echo "Host:    $(HOST_IP) (recebe os logs na porta $(NXLINK_LOG_PORT))"
+	@if [ -n "$(SERVER_IP)" ]; then echo "Servidor: $(SERVER_IP) (sobrescreve o config.json)"; fi
 	@echo ""
 	@echo "[1/3] Gerando config com debug habilitado..."
 	@sed -e 's/"log_to_file": false/"log_to_file": true/' \
 	     -e 's/"nxlink_host": ""/"nxlink_host": "$(HOST_IP)"/' \
 	     config.json > /tmp/rmns-config-debug.json
+	@if [ -n "$(SERVER_IP)" ]; then \
+		sed -i 's/"host": "[^"]*"/"host": "$(SERVER_IP)"/' /tmp/rmns-config-debug.json; \
+	fi
 	@echo "[2/3] Enviando .nro..."
 	@curl -s --ftp-create-dirs -T roms-manager-ns.nro \
 		ftp://$(SWITCH_IP):$(SWITCH_FTP_PORT)$(APP_DIR)/roms-manager-ns.nro
