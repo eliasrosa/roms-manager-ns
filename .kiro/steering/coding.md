@@ -26,9 +26,10 @@
 - Referenciar resources com path relativo ao BRLS_RESOURCES (sem prefixo `xml/` no código)
 - **Fontes obrigatórias** para renderizar texto no PC:
   `resources/font/switch_font.ttf` e `switch_icons.ttf`. Sem elas **nenhum** texto
-  aparece no desktop. Copiar de `library/resources/font/` (atenção: o path é esse,
-  não `library/library/resources/`). O `setup-resources.sh` cria os symlinks de
-  `i18n img inter material` mas **não** cobre `font/` — essa cópia é manual.
+  aparece no desktop. O `setup-resources.sh` já copia `font i18n img material` de
+  `library/resources/` (atenção: o path é esse, não `library/library/resources/`)
+  e depois mescla as traduções do projeto de `i18n/`. Não editar `resources/i18n/`
+  direto: é gitignored e o script apaga e recria o diretório a cada execução.
 - `AppletFrame` com `TabFrame` interno: não usar `iconInterpolation` no AppletFrame — causa textos invisíveis
 
 ## Rede
@@ -117,6 +118,28 @@ direto.
   sudo: `docker run --rm -v "$PWD:/w" alpine rm -rf /w/<path>`
 - **Nunca** usar `sudo rm` — no host o sudo pede senha interativa e trava a
   sessão do agente.
+
+## Docker — o source de `-v` é resolvido no host
+
+Quem interpreta o source de um bind-mount é o **daemon**, no filesystem dele, não
+o shell que monta o comando. As duas pontas divergem quando o Make roda de dentro
+de um container:
+
+| Caminho | Visível ao shell no container | Visível ao daemon (host) |
+|---|---|---|
+| `/home/<user-container>/...` | ✅ | ❌ → daemon cria dir vazio |
+| caminho real do host | ❌ | ✅ |
+
+Um source inexistente **não** dá erro: o Docker cria um diretório vazio e o
+container efêmero recebe um diretório onde deveria haver o arquivo.
+
+- Nos targets do Make, usar `$(HOST_CURDIR)` (via `host-path.sh`), nunca
+  `$(CURDIR)`, em qualquer `-v`.
+- Ao montar na mão a partir de um agente em container, traduzir o caminho:
+  `./host-path.sh <caminho>`.
+- `docker build` e `docker cp` **não** sofrem disso — o contexto e o arquivo
+  trafegam pelo socket. É por isso que o `build.sh` sempre funcionou de dentro do
+  container enquanto o `deploy` falhava.
 
 ## nxlink (deploy para Switch)
 

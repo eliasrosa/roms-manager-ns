@@ -27,6 +27,16 @@ SERVER_IP ?=
 
 APP_DIR := /switch/roms-manager-ns
 
+# Caminho deste repo como o daemon Docker o vê.
+#
+# Os targets que montam arquivos com '-v' precisam de um caminho do HOST: quem
+# resolve o source do mount é o daemon, não o shell. Rodando de dentro de um
+# container, $(CURDIR) só existe no container e o daemon cria um diretório vazio
+# no lugar do arquivo — o nxlink recebe um .nro inexistente e o netloader do
+# Switch trava. host-path.sh traduz via os mounts do próprio container; no host
+# devolve $(CURDIR) inalterado.
+HOST_CURDIR ?= $(shell ./host-path.sh 2>/dev/null || echo $(CURDIR))
+
 .PHONY: pc pc-setup pc-build clean-pc build watch serve deploy deploy-fresh \
         install install-fresh install-debug logs logs-live logs-clean \
         demo demo-switch
@@ -74,12 +84,12 @@ demo-switch:
 	@echo "[1/3] Build do demo para Switch..."
 	@docker build -f Dockerfile.demo -t borealis-demo .
 	@echo "[2/3] Extraindo .nro..."
-	@docker run --rm --user $$(id -u):$$(id -g) -v "$(CURDIR):/output" \
+	@docker run --rm --user $$(id -u):$$(id -g) -v "$(HOST_CURDIR):/output" \
 		--entrypoint "" borealis-demo cp /app/build/borealis_demo.nro /output/borealis-demo.nro
 	@echo "[3/3] Enviando via nxlink (abra o hbmenu em modo nxlink, tecla Y)..."
 	@pkill -f '[n]xlink' 2>/dev/null || true
 	@docker run --rm --network host \
-		-v $(CURDIR)/borealis-demo.nro:/app/borealis-demo.nro \
+		-v $(HOST_CURDIR)/borealis-demo.nro:/app/borealis-demo.nro \
 		devkitpro/devkita64 \
 		nxlink -a $(SWITCH_IP) -p /switch/borealis-demo/borealis-demo.nro -s /app/borealis-demo.nro
 
@@ -113,7 +123,7 @@ deploy:
 		nxlink -p /switch/roms-manager-ns/roms-manager-ns.nro -s ./roms-manager-ns.nro; \
 	else \
 		docker run --rm --network host \
-			-v $(CURDIR)/roms-manager-ns.nro:/app/roms-manager-ns.nro \
+			-v $(HOST_CURDIR)/roms-manager-ns.nro:/app/roms-manager-ns.nro \
 			devkitpro/devkita64 \
 			nxlink -a $(SWITCH_IP) -p /switch/roms-manager-ns/roms-manager-ns.nro -s /app/roms-manager-ns.nro; \
 	fi
