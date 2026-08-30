@@ -48,7 +48,7 @@ Edite `sdmc:/switch/roms-manager-ns/config.json`:
 ```json
 {
   "server": {
-    "host": "192.168.1.100",
+    "host": "192.168.0.100",
     "port": 8080,
     "protocol": "http"
   },
@@ -108,6 +108,10 @@ make deploy      # envia via nxlink (modo dev)
 make install     # copia via FTP (permanente)
 ```
 
+> `make deploy` usa `host-path.sh` para traduzir o caminho do container para o
+> caminho do host ao montar o `.nro` no `nxlink` — necessário quando o build roda
+> dentro de um container (evita o `.nro` virar diretório vazio e o netloader travar).
+
 ### Todos os targets
 
 ```bash
@@ -115,12 +119,16 @@ make pc            # compila e roda no PC
 make pc-build      # só compila PC
 make watch         # hot reload (recompila ao salvar)
 make serve         # inicia servidor (requer ../roms-manager-server)
+make demo          # abre a galeria de componentes do Borealis no PC
+make demo-switch   # gera o .nro do demo do Borealis e envia pro Switch
 make build         # gera .nro via Docker
 make deploy        # envia via nxlink (temporário)
 make install       # copia via FTP (permanente)
 make deploy-fresh  # build + deploy
 make install-fresh # build + install
 make clean-pc      # limpa build PC
+make clean         # limpa build Switch
+make clean-all     # limpa build Switch + PC
 ```
 
 ### Debug
@@ -171,7 +179,11 @@ roms-manager-ns/
 ├── Makefile                        # Build Switch + PC
 ├── CMakeLists.txt                  # Build PC (cmake)
 ├── Dockerfile                      # Build Switch via Docker
-├── build.sh                        # Script build Docker
+├── setup.sh                        # Entry point: submodule + resources + deps
+├── setup-resources.sh              # Copia resources (font, i18n, img, material)
+├── build.sh                        # Script build Docker (checa assets antes de compilar)
+├── host-path.sh                    # Traduz caminho container→host p/ mounts do nxlink (make deploy)
+├── watch.sh                        # Hot reload no PC
 └── test_sd/                        # SD card fake (testes PC)
 ```
 
