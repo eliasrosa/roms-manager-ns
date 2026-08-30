@@ -38,7 +38,12 @@ Build e recursos:
 - `Dockerfile` + `build.sh` — build Switch containerizado (`make build`)
 - `watch.sh` — hot reload no PC (`make watch`)
 - `setup.sh` — setup inicial (submodule + resources + checagem de deps)
-- `setup-resources.sh` — copia os assets do Borealis para `resources/`
+- `setup-resources.sh` — copia os assets do Borealis para `resources/` e mescla
+  as traduções do projeto (`i18n/`)
+- `host-path.sh` — traduz um caminho do container para o do host, para os mounts
+  do Docker (ver "Problemas conhecidos")
+- `i18n/` — traduções mantidas pelo projeto (versionadas), para idiomas que o
+  Borealis não traz. Copiadas para `resources/i18n/` pelo `setup-resources.sh`
 - `resources/xml/` — layouts XML do Borealis
 - `library/` — submodule Borealis (**fork com patches**, ver `borealis-fork.md`)
 - `icon.jpg` — ícone do .nro, referenciado pelo `elf2nro`
@@ -47,7 +52,10 @@ Não versionado (mas necessário):
 
 - `resources/font`, `i18n`, `img`, `material` — gitignorados. Um clone limpo
   **não** tem esses assets e sem `font/` nenhum texto renderiza. Resolvido por
-  `./setup.sh` (ou `./setup-resources.sh` direto).
+  `./setup.sh` (ou `./setup-resources.sh` direto). O `build.sh` também verifica
+  e roda o setup sozinho se faltarem — sem isso o `.nro` sai com um RomFS
+  contendo só shaders e XML, e a falha só aparece em runtime no console como
+  `Cannot find custom font` e `can't fopen`.
 - `config.local.json` — override do config no PC. `getConfigPath()` tenta esse
   arquivo antes do `config.json`. **Usar ao rodar no PC**: o `config.json`
   versionado aponta os paths para `sdmc:/`, e no desktop isso cria um diretório
@@ -122,6 +130,22 @@ Cadeia de build completa para gerar .nro:
   existem quando `DEVKITPRO` está definido, ou seja **falham no uso normal**.
 - Porta 28771 do nxlink pode ficar presa após timeout. O target `deploy` já faz
   `pkill -f nxlink` automaticamente; ao rodar o nxlink na mão, matar antes.
+- **Mount do Docker usa caminho do HOST, não do shell.** Quem resolve o source de
+  um `-v` é o daemon, no filesystem dele. Rodando o Make de dentro de um
+  container (agente em Docker, devcontainer), `$(CURDIR)` não existe para o
+  daemon e ele cria um **diretório vazio** no lugar do arquivo — sem erro algum.
+  Por isso os mounts usam `$(HOST_CURDIR)`, traduzido por `host-path.sh`.
+
+  O sintoma não aponta para o mount: o `deploy` imprime
+  `Sending ..., 9223372036854775807 bytes` (`INT64_MAX`, de medir um diretório) e
+  envia lixo; o netloader do Switch **trava ao receber** e a falha aparece do
+  lado do console. Já custou uma investigação inteira do loader e do app —
+  incluindo um crash report do Atmosphère com null deref dentro do menu
+  homebrew, que era consequência, não causa. Ao ver `INT64_MAX` num envio,
+  suspeitar do mount antes de qualquer coisa no Switch.
+
+  Efeito colateral: os mounts inválidos deixam diretórios vazios com owner root
+  no host, no caminho que o daemon tentou resolver.
 
 ## Variáveis do Makefile
 
@@ -131,6 +155,8 @@ Cadeia de build completa para gerar .nro:
 | `SWITCH_FTP_PORT` | `5000` | porta do ftpd no Switch |
 | `HOST_IP` | autodetectado (`ip route`) | IP desta máquina, para o Switch saber onde mandar os logs. Override: `make install-debug HOST_IP=192.168.0.4` |
 | `NXLINK_LOG_PORT` | `28771` | porta que recebe os logs (`NXLINK_CLIENT_PORT` do libnx) |
+| `SERVER_IP` | vazio | sobrescreve `server.host` no config enviado (`install` e `install-debug`), sem tocar o `config.json` versionado. Ex.: `make install SERVER_IP=<ip>` |
+| `HOST_CURDIR` | `./host-path.sh` | caminho deste repo **como o daemon Docker o vê**, usado nos mounts `-v`. No host é o próprio `$(CURDIR)`; dentro de um container é traduzido (ver "Problemas conhecidos") |
 | `APP_DIR` | `/switch/roms-manager-ns` | destino no SD card |
 | `DEVKITPRO` | — | só para o bloco de build legado (morto, ver acima) |
 

@@ -42,9 +42,27 @@ não altera o `config.json` do repo.
 
 Durante debug iterativo (recompilar e reenviar várias vezes), usar **`make deploy`**
 em vez de montar o `docker run ... nxlink` na mão — o target já monta o comando
-Docker correto (o `nxlink` não está instalado no host) e faz o `pkill` de
-instâncias presas. A única parte manual inevitável é abrir o hbmenu em modo
-nxlink (tecla Y) a cada execução; o app encerra ao sair, então isso se repete.
+Docker correto (o `nxlink` não está instalado no host), traduz o caminho do repo
+para o do host (`$(HOST_CURDIR)`) e faz o `pkill` de instâncias presas. A única
+parte manual inevitável é abrir o hbmenu em modo nxlink (tecla Y) a cada execução;
+o app encerra ao sair, então isso se repete.
+
+## Travamento no envio não é necessariamente problema do Switch
+
+Se o netloader travar ao receber e o envio imprimir um tamanho absurdo:
+
+```
+Sending /switch/<app>/<app>.nro, 9223372036854775807 bytes
+```
+
+`9223372036854775807` é `INT64_MAX` — o nxlink não achou o arquivo e mediu outra
+coisa. A causa está no **mount**, não no console: ver "Problemas conhecidos" em
+`project.md`. O nxlink envia lixo e o loader do outro lado engasga.
+
+Isso já produziu um crash report do Atmosphère com null pointer dereference e
+stack inteiramente dentro do menu homebrew — que parecia bug do loader e era
+consequência da transferência inválida. Antes de investigar o console, conferir
+que o envio reportou o tamanho **real** do `.nro`.
 
 ## Por que existem dois canais
 
